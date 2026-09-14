@@ -1,0 +1,33 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users profile collection
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Lost and found items
+    match /items/{itemId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.reportedBy;
+    }
+    
+    // Chats and 1-on-1 messages
+    match /chats/{chatId} {
+      allow read: if request.auth != null && (
+        request.auth.uid in resource.data.participants
+      );
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && (
+        request.auth.uid in resource.data.participants
+      );
+      
+      // Messages subcollection
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null;
+      }
+    }
+  }
+}

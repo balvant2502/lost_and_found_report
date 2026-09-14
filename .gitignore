@@ -1,0 +1,108 @@
+# ==============================================================================
+# Flutter / Dart / Dependencies
+# ==============================================================================
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+coverage/
+**/doc/api/
+
+# ==============================================================================
+# Android
+# ==============================================================================
+**/android/.gradle/
+**/android/local.properties
+**/android/**/GeneratedPluginRegistrant.java
+**/android/app/debug/
+**/android/app/profile/
+**/android/app/release/
+
+# Android Keystores and Build outputs
+*.jks
+*.keystore
+key.properties
+*.apk
+*.aab
+*.ap_
+
+# ==============================================================================
+# iOS & macOS
+# ==============================================================================
+**/ios/**/GeneratedPluginRegistrant.h
+**/ios/**/GeneratedPluginRegistrant.m
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/Flutter.podspec
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/app.flx
+**/ios/Flutter/app.zip
+**/ios/Flutter/flutter_assets/
+**/ios/Flutter/.last_build_id
+**/ios/ServiceDefinitions.json
+**/ios/Pods/
+**/ios/.symlinks/
+
+**/macos/Flutter/ephemeral/
+**/macos/Pods/
+**/macos/.symlinks/
+
+# ==============================================================================
+# Windows Desktop
+# ==============================================================================
+**/windows/flutter/ephemeral/
+**/windows/CMakeLists.txt.user
+*.vcxproj.user
+
+# ==============================================================================
+# Linux Desktop
+# ==============================================================================
+**/linux/flutter/ephemeral/
+
+# ==============================================================================
+# Web
+# ==============================================================================
+**/web/build/
+
+# ==============================================================================
+# Firebase & Local Run Logs
+# ==============================================================================
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+*.log
+
+# ==============================================================================
+# Local Device Storage / Image Caches
+# ==============================================================================
+**/item_images/
+**/campus_found_images/
+
+# ==============================================================================
+# IDE & System Files
+# ==============================================================================
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Visual Studio Code
+.vscode/
+
+# OS Generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Symbolication & Obfuscation
+app.*.symbols
+app.*.map.json
