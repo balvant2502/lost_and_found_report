@@ -6,6 +6,8 @@ class ItemModel {
   final String description;
   final String category;
   final String location;
+  final double? latitude;
+  final double? longitude;
   final DateTime date;
   final bool isLost;
   final String reportedBy;
@@ -21,6 +23,8 @@ class ItemModel {
     required this.description,
     required this.category,
     required this.location,
+    this.latitude,
+    this.longitude,
     required this.date,
     required this.isLost,
     required this.reportedBy,
@@ -32,6 +36,7 @@ class ItemModel {
   }) : createdAt = createdAt ?? DateTime.now();
 
   bool get isFound => !isLost;
+  bool get hasCoordinates => latitude != null && longitude != null;
 
   factory ItemModel.fromMap(Map<String, dynamic> map, String id) {
     DateTime parseDate(dynamic val) {
@@ -47,6 +52,8 @@ class ItemModel {
       description: map['description'] as String? ?? '',
       category: map['category'] as String? ?? 'Other',
       location: map['location'] as String? ?? '',
+      latitude: (map['latitude'] as num?)?.toDouble(),
+      longitude: (map['longitude'] as num?)?.toDouble(),
       date: parseDate(map['date']),
       isLost: map['isLost'] as bool? ?? true,
       reportedBy: map['reportedBy'] as String? ?? '',
@@ -64,6 +71,8 @@ class ItemModel {
       'description': description,
       'category': category,
       'location': location,
+      'latitude': latitude,
+      'longitude': longitude,
       'date': date.toIso8601String(),
       'isLost': isLost,
       'reportedBy': reportedBy,
@@ -81,6 +90,8 @@ class ItemModel {
     String? description,
     String? category,
     String? location,
+    double? latitude,
+    double? longitude,
     DateTime? date,
     bool? isLost,
     String? reportedBy,
@@ -96,6 +107,8 @@ class ItemModel {
       description: description ?? this.description,
       category: category ?? this.category,
       location: location ?? this.location,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       date: date ?? this.date,
       isLost: isLost ?? this.isLost,
       reportedBy: reportedBy ?? this.reportedBy,

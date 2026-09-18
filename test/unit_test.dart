@@ -1,10 +1,12 @@
 import 'package:campus_found/core/constants/app_constants.dart';
+import 'package:campus_found/core/constants/campus_bounds.dart';
 import 'package:campus_found/core/utils/date_helper.dart';
 import 'package:campus_found/features/auth/models/user_model.dart';
 import 'package:campus_found/features/chat/models/chat_room_model.dart';
 import 'package:campus_found/features/chat/models/message_model.dart';
 import 'package:campus_found/features/lost_found/models/item_model.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:latlong2/latlong.dart';
 
 void main() {
   group('AppConstants Tests', () {
@@ -22,14 +24,48 @@ void main() {
     });
   });
 
+  group('CampusBounds & Geolocation Tests', () {
+    test('Campus regions contain their respective centers and valid bounds', () {
+      final stanford = CampusBounds.getRegion('Stanford University');
+      expect(stanford.contains(stanford.center), isTrue);
+      expect(stanford.landmarks.isNotEmpty, isTrue);
+
+      final mit = CampusBounds.getRegion('MIT');
+      expect(mit.contains(mit.center), isTrue);
+
+      final berkeley = CampusBounds.getRegion('UC Berkeley');
+      expect(berkeley.contains(berkeley.center), isTrue);
+    });
+
+    test('Campus region clamps coordinates outside boundaries', () {
+      final stanford = CampusBounds.getRegion('Stanford University');
+      // Point far outside Stanford (e.g. New York)
+      final farPoint = const LatLng(40.7128, -74.0060);
+      expect(stanford.contains(farPoint), isFalse);
+
+      final clamped = stanford.clamp(farPoint);
+      expect(stanford.contains(clamped), isTrue);
+    });
+
+    test('Closest landmark resolution inside campus', () {
+      final stanford = CampusBounds.getRegion('Stanford University');
+      final mainQuad = const LatLng(37.4275, -122.1697);
+      final landmark = stanford.getClosestLandmark(mainQuad);
+      expect(landmark, isNotNull);
+      expect(landmark!.name, equals('Main Quad'));
+    });
+  });
+
   group('ItemModel Tests', () {
-    test('ItemModel serialization and getters work correctly', () {
+    test('ItemModel serialization with latitude and longitude', () {
       final item = ItemModel(
         id: 'item123',
         title: 'AirPods Pro',
         description: 'White case with green sticker',
         category: AppConstants.categoryElectronics,
-        location: 'Library 3rd floor',
+        location: 'Main Quad, Stanford University',
+        latitude: 37.4275,
+        longitude: -122.1697,
         date: DateTime(2026, 9, 14, 10, 0),
         isLost: true,
         reportedBy: 'user1',
@@ -40,19 +76,25 @@ void main() {
       expect(item.isLost, isTrue);
       expect(item.isFound, isFalse);
       expect(item.isResolved, isFalse);
+      expect(item.hasCoordinates, isTrue);
+      expect(item.latitude, equals(37.4275));
+      expect(item.longitude, equals(-122.1697));
 
       final map = item.toMap();
       expect(map['title'], equals('AirPods Pro'));
       expect(map['category'], equals('Electronics'));
       expect(map['isLost'], isTrue);
       expect(map['university'], equals('Stanford University'));
+      expect(map['latitude'], equals(37.4275));
+      expect(map['longitude'], equals(-122.1697));
 
       final reconstructed = ItemModel.fromMap(map, 'item123');
       expect(reconstructed.id, equals('item123'));
       expect(reconstructed.title, equals('AirPods Pro'));
-      expect(reconstructed.location, equals('Library 3rd floor'));
-      expect(reconstructed.isLost, isTrue);
-      expect(reconstructed.isResolved, isFalse);
+      expect(reconstructed.location, equals('Main Quad, Stanford University'));
+      expect(reconstructed.latitude, equals(37.4275));
+      expect(reconstructed.longitude, equals(-122.1697));
+      expect(reconstructed.hasCoordinates, isTrue);
     });
 
     test('ItemModel copyWith updates fields properly', () {

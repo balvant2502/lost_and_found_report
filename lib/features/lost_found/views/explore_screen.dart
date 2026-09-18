@@ -9,7 +9,6 @@ import '../../auth/view_models/auth_view_model.dart';
 import '../models/item_model.dart';
 import '../view_models/lost_found_view_model.dart';
 import 'item_details_screen.dart';
-import 'report_item_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -63,6 +62,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 76,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -94,22 +94,64 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline_rounded),
-            tooltip: 'Report Item',
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const ReportItemScreen(),
-                ),
-              );
-            },
-          ),
-        ],
       ),
       body: Column(
         children: [
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withValues(alpha: 0.18),
+                  blurRadius: 16,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.16),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.location_searching_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Find it. Return it.',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(height: 3),
+                      Text(
+                        'Search your campus community for a match.',
+                        style: TextStyle(
+                          color: Color(0xFFDCE7FF),
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
           // Search Bar
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
@@ -280,6 +322,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Widget _buildItemCard(BuildContext context, ItemModel item) {
     final hasLocalImage = FileHelper.doesLocalImageExist(item.imageUrl);
+    final hasRemoteImage = item.imageUrl?.startsWith('http') ?? false;
 
     return InkWell(
       onTap: () {
@@ -309,6 +352,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           fit: BoxFit.cover,
                           errorBuilder: (_, _, _) => _buildPlaceholder(item),
                         )
+                      : hasRemoteImage
+                          ? Image.network(
+                              item.imageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => _buildPlaceholder(item),
+                            )
                       : _buildPlaceholder(item),
                 ),
               ),
@@ -485,22 +534,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
               style: const TextStyle(
                 fontSize: 14,
                 color: Color(0xFF64748B),
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const ReportItemScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Post Report'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                foregroundColor: Colors.white,
               ),
             ),
           ],

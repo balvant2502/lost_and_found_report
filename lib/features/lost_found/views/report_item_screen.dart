@@ -1,16 +1,21 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_theme.dart';
 import '../../../core/utils/date_helper.dart';
 import '../../../core/utils/file_helper.dart';
+import '../../../core/services/cloudinary_service.dart';
 import '../../auth/view_models/auth_view_model.dart';
 import '../view_models/lost_found_view_model.dart';
+import 'widgets/campus_map_picker.dart';
 
 class ReportItemScreen extends StatefulWidget {
-  const ReportItemScreen({super.key});
+  const ReportItemScreen({super.key, this.onSubmitted});
+
+  final VoidCallback? onSubmitted;
 
   @override
   State<ReportItemScreen> createState() => _ReportItemScreenState();
@@ -20,7 +25,7 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
-  final _locationController = TextEditingController();
+  final _roomDetailController = TextEditingController();
 
   bool _isLost = true; // true = lost, false = found
   String _selectedCategory = AppConstants.categories.first;
@@ -28,11 +33,14 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
   String? _selectedImagePath;
   bool _isSavingImage = false;
 
+  LatLng? _pinnedLocation;
+  String _resolvedLocationName = '';
+
   @override
   void dispose() {
     _titleController.dispose();
     _descController.dispose();
-    _locationController.dispose();
+    _roomDetailController.dispose();
     super.dispose();
   }
 
@@ -122,6 +130,16 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
   void _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    if (_pinnedLocation == null || _resolvedLocationName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please pinpoint the item location on the campus map.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
     final authVM = context.read<AuthViewModel>();
     final lostFoundVM = context.read<LostFoundViewModel>();
     final user = authVM.currentUser;
@@ -133,28 +151,61 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
       return;
     }
 
+    final roomNote = _roomDetailController.text.trim();
+    final finalLocation = roomNote.isNotEmpty
+        ? '$_resolvedLocationName ($roomNote)'
+        : _resolvedLocationName;
+
+    String? uploadedImageUrl;
+    if (_selectedImagePath != null) {
+      setState(() => _isSavingImage = true);
+      try {
+        uploadedImageUrl = await CloudinaryService.uploadImage(
+          _selectedImagePath!,
+        );
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isSavingImage = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Image upload failed: $e'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+        return;
+      }
+      if (mounted) setState(() => _isSavingImage = false);
+    }
+
     final success = await lostFoundVM.createReport(
       title: _titleController.text,
       description: _descController.text,
       category: _selectedCategory,
-      location: _locationController.text,
+      location: finalLocation,
+      latitude: _pinnedLocation!.latitude,
+      longitude: _pinnedLocation!.longitude,
       date: _selectedDate,
       isLost: _isLost,
       reportedBy: user.uid,
       reporterName: user.name,
       university: user.university,
-      imageUrl: _selectedImagePath,
+      imageUrl: uploadedImageUrl,
     );
 
     if (mounted) {
       if (success) {
-        Navigator.of(context).pop();
+        if (widget.onSubmitted != null) {
+          widget.onSubmitted!();
+        } else {
+          Navigator.of(context).pop();
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               _isLost
-                  ? 'Lost item reported successfully!'
-                  : 'Found item reported successfully!',
+                  ? 'Lost item reported with campus pinpoint!'
+                  : 'Found item reported with campus pinpoint!',
             ),
             backgroundColor: AppTheme.foundColor,
           ),
@@ -172,7 +223,9 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authVM = context.watch<AuthViewModel>();
     final lostFoundVM = context.watch<LostFoundViewModel>();
+    final university = authVM.currentUser?.university ?? '';
 
     return Scaffold(
       appBar: AppBar(
@@ -185,6 +238,34 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFBFDBFE)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.campaign_rounded,
+                      color: AppTheme.primaryColor,
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Help your campus community reunite with a lost item.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: const Color(0xFF1E3A8A),
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
               // Report Type Selector
               Row(
                 children: [
@@ -291,24 +372,58 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
                   }
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
 
-              // Location
+              // University Region Pinpoint Map (Replaced Text Input)
+              const Row(
+                children: [
+                  Icon(
+                    Icons.map_rounded,
+                    size: 18,
+                    color: AppTheme.primaryColor,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Campus Location Pinpoint',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                'Pinpoint the exact spot inside your university campus.',
+                style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+              ),
+              const SizedBox(height: 10),
+
+              CampusMapPicker(
+                university: university,
+                isLost: _isLost,
+                initialPosition: _pinnedLocation,
+                onLocationSelected: (position, placeName) {
+                  if (!mounted) return;
+                  setState(() {
+                    _pinnedLocation = position;
+                    _resolvedLocationName = placeName;
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Optional Indoor / Room Detail
               TextFormField(
-                controller: _locationController,
+                controller: _roomDetailController,
                 textCapitalization: TextCapitalization.sentences,
                 textInputAction: TextInputAction.next,
                 decoration: const InputDecoration(
-                  labelText: 'Campus Location',
-                  hintText: 'e.g. Main Library 2nd Floor, Room 204',
-                  prefixIcon: Icon(Icons.location_on_outlined),
+                  labelText: 'Floor / Room / Area Note (Optional)',
+                  hintText: 'e.g. 2nd Floor, Room 204 or Near Vending Machine',
+                  prefixIcon: Icon(Icons.meeting_room_outlined),
                 ),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Please specify the location';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 16),
 

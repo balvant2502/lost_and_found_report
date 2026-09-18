@@ -134,6 +134,8 @@ class LostFoundViewModel extends ChangeNotifier {
     required String reportedBy,
     required String reporterName,
     required String university,
+    double? latitude,
+    double? longitude,
     String? imageUrl,
   }) async {
     _isLoading = true;
@@ -147,6 +149,8 @@ class LostFoundViewModel extends ChangeNotifier {
         description: description.trim(),
         category: category,
         location: location.trim(),
+        latitude: latitude,
+        longitude: longitude,
         date: date,
         isLost: isLost,
         reportedBy: reportedBy,

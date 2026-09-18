@@ -59,23 +59,55 @@ class DashboardScreen extends StatelessWidget {
     final lostFoundVM = context.read<LostFoundViewModel>();
     String selectedUni =
         authVM.currentUser?.university ?? AppConstants.defaultUniversities.first;
+    final isInitiallyCustom =
+        !AppConstants.defaultUniversities.contains(selectedUni);
+    bool isCustomUniversity = isInitiallyCustom;
+    final customUniversityController = TextEditingController(
+      text: isInitiallyCustom ? selectedUni : '',
+    );
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setStateDialog) => AlertDialog(
           title: const Text('Change University'),
-          content: DropdownButtonFormField<String>(
-            initialValue: AppConstants.defaultUniversities.contains(selectedUni)
-                ? selectedUni
-                : AppConstants.defaultUniversities.first,
-            decoration: const InputDecoration(labelText: 'Select Campus'),
-            items: AppConstants.defaultUniversities.map((uni) {
-              return DropdownMenuItem(value: uni, child: Text(uni));
-            }).toList(),
-            onChanged: (val) {
-              if (val != null) setStateDialog(() => selectedUni = val);
-            },
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: isInitiallyCustom
+                    ? 'Other University'
+                    : selectedUni,
+                decoration: const InputDecoration(labelText: 'Select Campus'),
+                items: AppConstants.defaultUniversities.map((uni) {
+                  return DropdownMenuItem(value: uni, child: Text(uni));
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setStateDialog(() {
+                      selectedUni = val;
+                      isCustomUniversity = val == 'Other University';
+                      if (!isCustomUniversity) {
+                        customUniversityController.clear();
+                      }
+                    });
+                  }
+                },
+              ),
+              if (isCustomUniversity) ...[
+                const SizedBox(height: 12),
+                TextField(
+                  controller: customUniversityController,
+                  autofocus: !isInitiallyCustom,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Specific university name',
+                    hintText: 'e.g. University of Toronto',
+                    prefixIcon: Icon(Icons.account_balance_outlined),
+                  ),
+                ),
+              ],
+            ],
           ),
           actions: [
             TextButton(
@@ -84,10 +116,29 @@ class DashboardScreen extends StatelessWidget {
             ),
             FilledButton(
               onPressed: () async {
+                final universityName = isCustomUniversity
+                    ? customUniversityController.text.trim()
+                    : selectedUni;
+                if (universityName.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Please enter your specific university name.'),
+                    ),
+                  );
+                  return;
+                }
                 Navigator.of(ctx).pop();
-                final success = await authVM.updateUniversity(selectedUni);
+                final success = await authVM.updateUniversity(universityName);
                 if (success) {
-                  lostFoundVM.setUniversity(selectedUni);
+                  lostFoundVM.setUniversity(universityName);
+                } else if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        authVM.errorMessage ?? 'Could not update university.',
+                      ),
+                    ),
+                  );
                 }
               },
               child: const Text('Save'),
@@ -95,7 +146,7 @@ class DashboardScreen extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ).then((_) => customUniversityController.dispose());
   }
 
   @override
@@ -129,6 +180,8 @@ class DashboardScreen extends StatelessWidget {
           children: [
             // Student Profile Card
             Card(
+              margin: EdgeInsets.zero,
+              color: const Color(0xFFF0F7FF),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -387,6 +440,7 @@ class DashboardScreen extends StatelessWidget {
   ) {
     final lostFoundVM = context.read<LostFoundViewModel>();
     final hasLocalImage = FileHelper.doesLocalImageExist(item.imageUrl);
+    final hasRemoteImage = item.imageUrl?.startsWith('http') ?? false;
 
     return Card(
       child: Padding(
@@ -406,6 +460,12 @@ class DashboardScreen extends StatelessWidget {
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => _placeholder(item),
                       )
+                    : hasRemoteImage
+                        ? Image.network(
+                            item.imageUrl!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => _placeholder(item),
+                          )
                     : _placeholder(item),
               ),
             ),

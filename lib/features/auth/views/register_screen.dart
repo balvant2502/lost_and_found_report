@@ -76,20 +76,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Join your campus network',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: -0.3,
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: const Color(0xFFBFDBFE)),
                   ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Connect with peers at your university to recover lost items.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF64748B),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Join your campus network',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF0F172A),
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Connect with peers at your university to recover lost items.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF475569),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 28),

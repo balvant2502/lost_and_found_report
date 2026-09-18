@@ -15,10 +15,13 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    ExploreScreen(),
-    ChatListScreen(),
-    DashboardScreen(),
+  late final List<Widget> _screens = [
+    const ExploreScreen(),
+    ReportItemScreen(
+      onSubmitted: () => setState(() => _currentIndex = 0),
+    ),
+    const ChatListScreen(),
+    const DashboardScreen(),
   ];
 
   @override
@@ -42,6 +45,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             label: 'Explore',
           ),
           NavigationDestination(
+            icon: Icon(Icons.add_box_outlined),
+            selectedIcon: Icon(Icons.add_box_rounded, color: AppTheme.primaryColor),
+            label: 'Report',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.chat_bubble_outline_rounded),
             selectedIcon: Icon(Icons.chat_bubble_rounded, color: AppTheme.primaryColor),
             label: 'Chats',
@@ -53,24 +61,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           ),
         ],
       ),
-      floatingActionButton: _currentIndex == 0
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const ReportItemScreen(),
-                  ),
-                );
-              },
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text(
-                'Report Item',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-            )
-          : null,
     );
   }
 }

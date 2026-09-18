@@ -75,6 +75,26 @@ firestore-debug.log*
 ui-debug.log*
 *.log
 
+# ================================================================================
+# Secrets and Local Configuration
+# ================================================================================
+.env
+.env.*
+!.env.example
+*.secret
+*.secret.*
+*.private
+*.private.*
+service-account*.json
+firebase-adminsdk-*.json
+secrets/
+credentials/
+*.pem
+*.key
+*.p12
+*.pfx
+*.mobileprovision
+
 # ==============================================================================
 # Local Device Storage / Image Caches
 # ==============================================================================

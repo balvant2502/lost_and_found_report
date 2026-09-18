@@ -22,7 +22,6 @@ void main() async {
   } catch (e) {
     debugPrint('Firebase initialization note: $e');
   }
-
   runApp(const CampusFoundApp());
 }
 

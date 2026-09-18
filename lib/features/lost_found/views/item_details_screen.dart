@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_theme.dart';
@@ -115,13 +117,14 @@ class ItemDetailsScreen extends StatelessWidget {
     final lostFoundVM = context.watch<LostFoundViewModel>();
     final currentUserId = authVM.currentUser?.uid ?? '';
     final isReporter = item.reportedBy == currentUserId;
-    final hasLocalImage = FileHelper.doesLocalImageExist(item.imageUrl);
 
     // Look up live state if available
     final liveItem = lostFoundVM.allItems.firstWhere(
       (i) => i.id == item.id,
       orElse: () => item,
     );
+    final hasLocalImage = FileHelper.doesLocalImageExist(liveItem.imageUrl);
+    final hasRemoteImage = liveItem.imageUrl?.startsWith('http') ?? false;
 
     return Scaffold(
       appBar: AppBar(
@@ -156,6 +159,13 @@ class ItemDetailsScreen extends StatelessWidget {
                         File(liveItem.imageUrl!),
                         fit: BoxFit.cover,
                         errorBuilder: (_, _, _) => _buildLargePlaceholder(liveItem),
+                      )
+                  : hasRemoteImage
+                    ? Image.network(
+                      liveItem.imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) =>
+                        _buildLargePlaceholder(liveItem),
                       )
                     : _buildLargePlaceholder(liveItem),
               ),
@@ -276,6 +286,57 @@ class ItemDetailsScreen extends StatelessWidget {
                         ),
                       ],
                     ),
+                    if (liveItem.hasCoordinates) ...[
+                      const SizedBox(height: 12),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: SizedBox(
+                          height: 140,
+                          width: double.infinity,
+                          child: FlutterMap(
+                            options: MapOptions(
+                              initialCenter: LatLng(
+                                liveItem.latitude!,
+                                liveItem.longitude!,
+                              ),
+                              initialZoom: 16.5,
+                              interactionOptions: const InteractionOptions(
+                                flags: InteractiveFlag.pinchZoom |
+                                    InteractiveFlag.drag,
+                              ),
+                            ),
+                            children: [
+                              TileLayer(
+                                urlTemplate:
+                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                userAgentPackageName:
+                                    'com.example.campus_found',
+                              ),
+                              MarkerLayer(
+                                markers: [
+                                  Marker(
+                                    point: LatLng(
+                                      liveItem.latitude!,
+                                      liveItem.longitude!,
+                                    ),
+                                    width: 36,
+                                    height: 36,
+                                    alignment: Alignment.topCenter,
+                                    child: Icon(
+                                      Icons.location_on,
+                                      size: 32,
+                                      color: liveItem.isLost
+                                          ? AppTheme.lostColor
+                                          : AppTheme.foundColor,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                     const Divider(height: 20),
                     Row(
                       children: [

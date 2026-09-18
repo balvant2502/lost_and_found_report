@@ -20,6 +20,28 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+      textTheme: const TextTheme(
+        headlineSmall: TextStyle(
+          color: Color(0xFF0F172A),
+          fontSize: 24,
+          fontWeight: FontWeight.w800,
+        ),
+        titleLarge: TextStyle(
+          color: Color(0xFF0F172A),
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
+        titleMedium: TextStyle(
+          color: Color(0xFF0F172A),
+          fontSize: 16,
+          fontWeight: FontWeight.w700,
+        ),
+        bodyMedium: TextStyle(
+          color: Color(0xFF475569),
+          fontSize: 14,
+          height: 1.35,
+        ),
+      ),
       appBarTheme: const AppBarTheme(
         centerTitle: false,
         elevation: 0,
@@ -76,7 +98,9 @@ class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        elevation: 2,
+        height: 72,
+        elevation: 8,
+        backgroundColor: Colors.white,
         indicatorColor: primaryColor.withValues(alpha: 0.15),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
@@ -92,6 +116,11 @@ class AppTheme {
             color: Color(0xFF64748B),
           );
         }),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       ),
     );
   }
