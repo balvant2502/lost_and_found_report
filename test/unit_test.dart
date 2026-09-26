@@ -5,6 +5,7 @@ import 'package:campus_found/features/auth/models/user_model.dart';
 import 'package:campus_found/features/chat/models/chat_room_model.dart';
 import 'package:campus_found/features/chat/models/message_model.dart';
 import 'package:campus_found/features/lost_found/models/item_model.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -53,6 +54,40 @@ void main() {
       final landmark = stanford.getClosestLandmark(mainQuad);
       expect(landmark, isNotNull);
       expect(landmark!.name, equals('Main Quad'));
+    });
+
+    test('CampusBounds resolves custom university dynamically', () async {
+      final customRegion = await CampusBounds.resolveRegion('Oxford University');
+      expect(customRegion, isNotNull);
+      expect(customRegion.university, equals('Oxford University'));
+      expect(customRegion.contains(customRegion.center), isTrue);
+      expect(customRegion.bounds.north, greaterThan(customRegion.bounds.south));
+      expect(customRegion.bounds.east, greaterThan(customRegion.bounds.west));
+
+      // After resolving, synchronous lookup should also retrieve it from cache
+      final cached = CampusBounds.getRegion('Oxford University');
+      expect(cached, isNotNull);
+      expect(cached!.university, equals('Oxford University'));
+    });
+
+    test('CampusBounds registers and retrieves manual custom region', () {
+      final testRegion = CampusRegion(
+        university: 'Custom Tech Institute',
+        center: const LatLng(12.9716, 77.5946),
+        bounds: LatLngBounds(
+          const LatLng(12.9600, 77.5800),
+          const LatLng(12.9800, 77.6100),
+        ),
+        isDynamicallyResolved: true,
+      );
+
+      CampusBounds.registerCustomRegion(testRegion);
+
+      final retrieved = CampusBounds.getRegion('Custom Tech Institute');
+      expect(retrieved, isNotNull);
+      expect(retrieved!.center.latitude, equals(12.9716));
+      expect(retrieved.isDynamicallyResolved, isTrue);
+      expect(retrieved.contains(testRegion.center), isTrue);
     });
   });
 

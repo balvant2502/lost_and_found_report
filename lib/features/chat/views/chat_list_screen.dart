@@ -35,26 +35,37 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final rooms = chatVM.chatRooms;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Messages'),
+        title: const Text(
+          'Messages',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF18181B),
+          ),
+        ),
       ),
       body: chatVM.isLoadingRooms
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+              child: CircularProgressIndicator(
+                color: AppTheme.primaryColor,
+                strokeWidth: 2.5,
+              ),
+            )
           : rooms.isEmpty
               ? _buildEmptyState()
               : RefreshIndicator(
+                  color: AppTheme.primaryColor,
                   onRefresh: () async {
                     if (authVM.currentUser != null) {
                       chatVM.initUserChats(authVM.currentUser!.uid);
                     }
                   },
                   child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 100),
                     itemCount: rooms.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) => const SizedBox(height: 10),
                     itemBuilder: (context, index) {
                       final room = rooms[index];
                       return _buildChatRoomTile(context, room, currentUserId);
@@ -74,17 +85,22 @@ class _ChatListScreenState extends State<ChatListScreen> {
         ? DateHelper.formatRelative(room.lastMessageTime!)
         : '';
 
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
           radius: 24,
-          backgroundColor: AppTheme.primaryColor.withValues(alpha: 0.12),
+          backgroundColor: const Color(0xFFFFF5EB),
           child: Text(
             otherName.isNotEmpty ? otherName[0].toUpperCase() : '?',
             style: const TextStyle(
               fontSize: 18,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w800,
               color: AppTheme.primaryColor,
             ),
           ),
@@ -96,8 +112,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
               child: Text(
                 otherName,
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                  color: Color(0xFF18181B),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -107,8 +124,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
               Text(
                 timeStr,
                 style: const TextStyle(
-                  fontSize: 12,
-                  color: Color(0xFF94A3B8),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFFA1A1AA),
                 ),
               ),
           ],
@@ -120,15 +138,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
-                borderRadius: BorderRadius.circular(4),
+                color: const Color(0xFFF4F4F5),
+                borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 'Re: ${room.itemTitle}',
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF475569),
+                  color: Color(0xFF52525B),
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -141,7 +159,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   : 'No messages yet',
               style: const TextStyle(
                 fontSize: 13,
-                color: Color(0xFF64748B),
+                color: Color(0xFF71717A),
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -171,24 +189,23 @@ class _ChatListScreenState extends State<ChatListScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(20),
+              width: 72,
+              height: 72,
               decoration: const BoxDecoration(
-                color: Color(0xFFF1F5F9),
+                color: Color(0xFFF4F4F5),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.chat_bubble_outline_rounded,
-                size: 44,
-                color: Color(0xFF94A3B8),
+              child: const Center(
+                child: Text('💬', style: TextStyle(fontSize: 32)),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 18),
             const Text(
               'No active conversations',
               style: TextStyle(
                 fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E293B),
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF18181B),
               ),
             ),
             const SizedBox(height: 6),
@@ -196,8 +213,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
               'When you inquire about a lost or found item, your conversations will appear here.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF64748B),
+                fontSize: 13,
+                color: Color(0xFF71717A),
               ),
             ),
           ],

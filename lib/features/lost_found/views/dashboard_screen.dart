@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_theme.dart';
+import '../../../core/constants/campus_bounds.dart';
 import '../../../core/utils/date_helper.dart';
 import '../../../core/utils/file_helper.dart';
 import '../../auth/view_models/auth_view_model.dart';
@@ -21,7 +22,8 @@ class DashboardScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Report?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Text('Delete Report?', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Text('Are you sure you want to delete "${item.title}"?'),
         actions: [
           TextButton(
@@ -71,7 +73,8 @@ class DashboardScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setStateDialog) => AlertDialog(
-          title: const Text('Change University'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          title: const Text('Change University', style: TextStyle(fontWeight: FontWeight.w800)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -132,6 +135,7 @@ class DashboardScreen extends StatelessWidget {
                 final success = await authVM.updateUniversity(universityName);
                 if (success) {
                   lostFoundVM.setUniversity(universityName);
+                  CampusBounds.resolveRegion(universityName);
                 } else if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
@@ -164,75 +168,100 @@ class DashboardScreen extends StatelessWidget {
     final resolvedCount = lostFoundVM.getUserResolvedCount(uid);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('My Dashboard'),
+        title: const Text(
+          'My Dashboard',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF18181B),
+          ),
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Sign Out',
-            onPressed: () => authVM.signOut(),
+          Padding(
+            padding: const EdgeInsets.only(right: 14),
+            child: GestureDetector(
+              onTap: () => authVM.signOut(),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: const Icon(Icons.logout_rounded, size: 18, color: Color(0xFF18181B)),
+              ),
+            ),
           ),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(18, 6, 18, 100),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Student Profile Card
-            Card(
-              margin: EdgeInsets.zero,
-              color: const Color(0xFFF0F7FF),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 32,
-                      backgroundColor:
-                          AppTheme.primaryColor.withValues(alpha: 0.12),
-                      child: Text(
-                        (user?.name.isNotEmpty ?? false)
-                            ? user!.name[0].toUpperCase()
-                            : 'S',
-                        style: const TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.primaryColor,
-                        ),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: AppTheme.darkColor,
+                    child: Text(
+                      (user?.name.isNotEmpty ?? false)
+                          ? user!.name[0].toUpperCase()
+                          : 'S',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user?.name ?? 'Student',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF0F172A),
-                            ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.name ?? 'Student',
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF18181B),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            user?.email ?? '',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF64748B),
-                            ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          user?.email ?? '',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF71717A),
                           ),
-                          const SizedBox(height: 6),
-                          InkWell(
-                            onTap: () => _showEditUniversityDialog(context),
-                            borderRadius: BorderRadius.circular(6),
+                        ),
+                        const SizedBox(height: 6),
+                        GestureDetector(
+                          onTap: () => _showEditUniversityDialog(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF4F4F5),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 const Icon(
                                   Icons.school_rounded,
-                                  size: 14,
+                                  size: 12,
                                   color: AppTheme.primaryColor,
                                 ),
                                 const SizedBox(width: 4),
@@ -240,9 +269,9 @@ class DashboardScreen extends StatelessWidget {
                                   child: Text(
                                     user?.university ?? 'Select University',
                                     style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppTheme.primaryColor,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF27272A),
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -251,67 +280,126 @@ class DashboardScreen extends StatelessWidget {
                                 const SizedBox(width: 4),
                                 const Icon(
                                   Icons.edit_rounded,
-                                  size: 12,
-                                  color: AppTheme.primaryColor,
+                                  size: 11,
+                                  color: Color(0xFF71717A),
                                 ),
                               ],
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
 
-            // Statistics Section
-            const Text(
-              'Report Statistics',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF0F172A),
+            // Analytics Card (matching Screen 3 "Calorie stats / Analytics" from reference!)
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x06000000),
+                    blurRadius: 16,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Analytics Top Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Analytics',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF18181B),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '$totalCount Total Posts',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF5EB),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('🔥', style: TextStyle(fontSize: 12)),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${activeLost + activeFound} Active',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Sleek Stylized Vertical Bar Chart (matching reference)
+                  SizedBox(
+                    height: 72,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        _buildChartBar(height: 26, isHighlighted: false),
+                        _buildChartBar(height: 48, isHighlighted: false),
+                        _buildChartBar(height: 32, isHighlighted: false),
+                        _buildChartBar(height: 56, isHighlighted: false),
+                        _buildChartBar(height: 40, isHighlighted: false),
+                        _buildChartBar(height: 68, isHighlighted: true), // Coral Orange highlight bar!
+                        _buildChartBar(height: 30, isHighlighted: false),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(color: Color(0xFFF4F4F5), height: 1),
+                  const SizedBox(height: 14),
+
+                  // Summary Metric Badges
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildMetricItem('Lost', activeLost.toString(), AppTheme.primaryColor),
+                      _buildMetricItem('Found', activeFound.toString(), AppTheme.secondaryColor),
+                      _buildMetricItem('Resolved', resolvedCount.toString(), const Color(0xFF71717A)),
+                      _buildMetricItem('Total', totalCount.toString(), AppTheme.darkColor),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                _buildStatCard(
-                  title: 'Total Reports',
-                  value: totalCount.toString(),
-                  icon: Icons.assignment_rounded,
-                  color: AppTheme.primaryColor,
-                ),
-                const SizedBox(width: 10),
-                _buildStatCard(
-                  title: 'Resolved',
-                  value: resolvedCount.toString(),
-                  icon: Icons.check_circle_outline_rounded,
-                  color: Colors.green.shade700,
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                _buildStatCard(
-                  title: 'Active Lost',
-                  value: activeLost.toString(),
-                  icon: Icons.help_outline_rounded,
-                  color: AppTheme.lostColor,
-                ),
-                const SizedBox(width: 10),
-                _buildStatCard(
-                  title: 'Active Found',
-                  value: activeFound.toString(),
-                  icon: Icons.inventory_2_outlined,
-                  color: AppTheme.foundColor,
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // My Reports Header
             Row(
@@ -320,45 +408,54 @@ class DashboardScreen extends StatelessWidget {
                 const Text(
                   'My Reports',
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF18181B),
                   ),
                 ),
-                Text(
-                  '${myReports.length} items',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: Color(0xFF64748B),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4F4F5),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    '${myReports.length} items',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF71717A),
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
 
-            // My Reports List
+            // My Reports List (matching "Challenge" list in reference)
             if (myReports.isEmpty)
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 36),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
                 ),
                 child: const Column(
                   children: [
                     Icon(
                       Icons.folder_open_rounded,
-                      size: 44,
-                      color: Color(0xFF94A3B8),
+                      size: 40,
+                      color: Color(0xFFA1A1AA),
                     ),
                     SizedBox(height: 10),
                     Text(
                       'You have not posted any reports yet.',
                       style: TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF64748B),
+                        fontSize: 13,
+                        color: Color(0xFF71717A),
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -381,56 +478,38 @@ class DashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Expanded(
-      child: Card(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Color(0xFF64748B),
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
+  Widget _buildChartBar({required double height, required bool isHighlighted}) {
+    return Container(
+      width: 14,
+      height: height,
+      decoration: BoxDecoration(
+        color: isHighlighted ? AppTheme.primaryColor : const Color(0xFFE4E4E7),
+        borderRadius: BorderRadius.circular(8),
+      ),
+    );
+  }
+
+  Widget _buildMetricItem(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            color: color,
           ),
         ),
-      ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFFA1A1AA),
+          ),
+        ),
+      ],
     );
   }
 
@@ -444,189 +523,191 @@ class DashboardScreen extends StatelessWidget {
     final hasRemoteImage = (item.imageUrl?.startsWith('http') ?? false) ||
         (item.imageUrl?.startsWith('blob') ?? false);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Thumbnail
-            ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: SizedBox(
-                width: 60,
-                height: 60,
-                child: hasLocalImage
-                    ? Image.file(
-                        File(item.imageUrl!),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => _placeholder(item),
-                      )
-                    : hasRemoteImage
-                        ? Image.network(
-                            item.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => _placeholder(item),
-                          )
-                    : _placeholder(item),
-              ),
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Thumbnail
+          ClipRRect(
+            borderRadius: BorderRadius.circular(14),
+            child: SizedBox(
+              width: 58,
+              height: 58,
+              child: hasLocalImage
+                  ? Image.file(
+                      File(item.imageUrl!),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => _placeholder(item),
+                    )
+                  : hasRemoteImage
+                      ? Image.network(
+                          item.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => _placeholder(item),
+                        )
+                  : _placeholder(item),
             ),
-            const SizedBox(width: 12),
+          ),
+          const SizedBox(width: 12),
 
-            // Item Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
+          // Item Details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: item.isLost
+                            ? const Color(0xFFFFF5EB)
+                            : const Color(0xFFEDF7EE),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        item.isLost ? 'LOST' : 'FOUND',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
                           color: item.isLost
-                              ? AppTheme.lostColor.withValues(alpha: 0.12)
-                              : AppTheme.foundColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          item.isLost ? 'LOST' : 'FOUND',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: item.isLost
-                                ? AppTheme.lostColor
-                                : AppTheme.foundColor,
-                          ),
+                              ? AppTheme.primaryColor
+                              : AppTheme.secondaryColor,
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: item.isResolved
+                            ? const Color(0xFFF4F4F5)
+                            : const Color(0xFFEDF7EE),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        item.isResolved ? 'RESOLVED' : 'ACTIVE',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
                           color: item.isResolved
-                              ? AppTheme.resolvedColor.withValues(alpha: 0.15)
-                              : Colors.green.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          item.isResolved ? 'RESOLVED' : 'ACTIVE',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: item.isResolved
-                                ? AppTheme.resolvedColor
-                                : Colors.green.shade700,
-                          ),
+                              ? const Color(0xFF71717A)
+                              : AppTheme.secondaryColor,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    item.title,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF0F172A),
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    DateHelper.formatDate(item.date),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF94A3B8),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Quick Actions: Toggle Resolved & Delete
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF64748B)),
-              onSelected: (action) async {
-                if (action == 'view') {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => ItemDetailsScreen(item: item),
-                    ),
-                  );
-                } else if (action == 'toggle') {
-                  await lostFoundVM.toggleResolveStatus(
-                    itemId: item.id,
-                    currentResolved: item.isResolved,
-                    currentUserId: currentUserId,
-                  );
-                } else if (action == 'delete') {
-                  _confirmDelete(context, item);
-                }
-              },
-              itemBuilder: (ctx) => [
-                const PopupMenuItem(
-                  value: 'view',
-                  child: Row(
-                    children: [
-                      Icon(Icons.visibility_outlined, size: 18),
-                      SizedBox(width: 8),
-                      Text('View Details'),
-                    ],
-                  ),
+                  ],
                 ),
-                PopupMenuItem(
-                  value: 'toggle',
-                  child: Row(
-                    children: [
-                      Icon(
-                        item.isResolved
-                            ? Icons.refresh_rounded
-                            : Icons.check_circle_outline_rounded,
-                        size: 18,
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        item.isResolved ? 'Mark as Active' : 'Mark as Resolved',
-                      ),
-                    ],
+                const SizedBox(height: 4),
+                Text(
+                  item.title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF18181B),
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(Icons.delete_outline_rounded,
-                          size: 18, color: Colors.redAccent),
-                      SizedBox(width: 8),
-                      Text('Delete Report',
-                          style: TextStyle(color: Colors.redAccent)),
-                    ],
+                Text(
+                  DateHelper.formatDate(item.date),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFFA1A1AA),
                   ),
                 ),
               ],
             ),
-          ],
-        ),
+          ),
+
+          // Quick Actions Popup
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert_rounded, color: Color(0xFF71717A)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            onSelected: (action) async {
+              if (action == 'view') {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ItemDetailsScreen(item: item),
+                  ),
+                );
+              } else if (action == 'toggle') {
+                await lostFoundVM.toggleResolveStatus(
+                  itemId: item.id,
+                  currentResolved: item.isResolved,
+                  currentUserId: currentUserId,
+                );
+              } else if (action == 'delete') {
+                _confirmDelete(context, item);
+              }
+            },
+            itemBuilder: (ctx) => [
+              const PopupMenuItem(
+                value: 'view',
+                child: Row(
+                  children: [
+                    Icon(Icons.visibility_outlined, size: 18),
+                    SizedBox(width: 8),
+                    Text('View Details'),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: 'toggle',
+                child: Row(
+                  children: [
+                    Icon(
+                      item.isResolved
+                          ? Icons.refresh_rounded
+                          : Icons.check_circle_outline_rounded,
+                      size: 18,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      item.isResolved ? 'Mark as Active' : 'Mark as Resolved',
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_outline_rounded,
+                        size: 18, color: Colors.redAccent),
+                    SizedBox(width: 8),
+                    Text('Delete Report',
+                        style: TextStyle(color: Colors.redAccent)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _placeholder(ItemModel item) {
     return Container(
-      color: item.isLost
-          ? AppTheme.lostColor.withValues(alpha: 0.08)
-          : AppTheme.foundColor.withValues(alpha: 0.08),
+      color: const Color(0xFFF4F4F5),
       child: Center(
         child: Icon(
           Icons.category_rounded,
           size: 24,
-          color: item.isLost ? AppTheme.lostColor : AppTheme.foundColor,
+          color: item.isLost ? AppTheme.primaryColor : AppTheme.secondaryColor,
         ),
       ),
     );

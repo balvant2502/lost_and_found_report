@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_theme.dart';
+import '../../../core/constants/campus_bounds.dart';
 import '../view_models/auth_view_model.dart';
-import 'package:flutter/widget_previews.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -50,6 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
 
     if (success && mounted) {
+      CampusBounds.resolveRegion(university);
       Navigator.of(context).pop(); // Go back to root (which routes to home)
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -61,53 +62,84 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final authVM = context.watch<AuthViewModel>();
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        title: const Text('Create Account'),
+        title: const Text(
+          'Create Account',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF18181B),
+          ),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(18),
-                    border: Border.all(color: const Color(0xFFBFDBFE)),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x06000000),
+                        blurRadius: 14,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Join your campus network',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F172A),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF5EB),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          '🎓 Student Network',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primaryColor,
+                          ),
                         ),
                       ),
-                      SizedBox(height: 6),
-                      Text(
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Join your campus network',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF18181B),
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
                         'Connect with peers at your university to recover lost items.',
                         style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF475569),
+                          fontSize: 13,
+                          color: Color(0xFF71717A),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
 
                 // Name
                 TextFormField(
@@ -116,7 +148,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
                     labelText: 'Full Name',
-                    prefixIcon: Icon(Icons.person_outline),
+                    prefixIcon: Icon(Icons.person_outline, color: Color(0xFF71717A)),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -125,7 +157,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
                 // Email
                 TextFormField(
@@ -135,7 +167,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: const InputDecoration(
                     labelText: 'University Email',
                     hintText: 'student@university.edu',
-                    prefixIcon: Icon(Icons.email_outlined),
+                    prefixIcon: Icon(Icons.email_outlined, color: Color(0xFF71717A)),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -147,14 +179,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
                 // University Dropdown
                 DropdownButtonFormField<String>(
                   initialValue: _selectedUniversity,
                   decoration: const InputDecoration(
                     labelText: 'University / College',
-                    prefixIcon: Icon(Icons.school_outlined),
+                    prefixIcon: Icon(Icons.school_outlined, color: Color(0xFF71717A)),
                   ),
                   items: AppConstants.defaultUniversities.map((uni) {
                     return DropdownMenuItem(
@@ -172,14 +204,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   },
                 ),
                 if (_isCustomUniversity) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   TextFormField(
                     controller: _customUniversityController,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.next,
                     decoration: const InputDecoration(
                       labelText: 'Specify Your University',
-                      prefixIcon: Icon(Icons.account_balance_outlined),
+                      prefixIcon: Icon(Icons.account_balance_outlined, color: Color(0xFF71717A)),
                     ),
                     validator: (value) {
                       if (_isCustomUniversity &&
@@ -190,7 +222,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     },
                   ),
                 ],
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
                 // Password
                 TextFormField(
@@ -199,12 +231,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
                     labelText: 'Password',
-                    prefixIcon: const Icon(Icons.lock_outline),
+                    prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF71717A)),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword
                             ? Icons.visibility_outlined
                             : Icons.visibility_off_outlined,
+                        color: const Color(0xFF71717A),
                       ),
                       onPressed: () {
                         setState(() {
@@ -223,7 +256,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 14),
 
                 // Confirm Password
                 TextFormField(
@@ -233,7 +266,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   onFieldSubmitted: (_) => _submit(),
                   decoration: const InputDecoration(
                     labelText: 'Confirm Password',
-                    prefixIcon: Icon(Icons.lock_clock_outlined),
+                    prefixIcon: Icon(Icons.lock_clock_outlined, color: Color(0xFF71717A)),
                   ),
                   validator: (value) {
                     if (value != _passwordController.text) {
@@ -242,25 +275,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 24),
 
-                // Register Button
-                ElevatedButton(
-                  onPressed: authVM.isLoading ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: authVM.isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+                // Register Pill Button
+                SizedBox(
+                  height: 54,
+                  child: FilledButton(
+                    onPressed: authVM.isLoading ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.darkColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: authVM.isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text(
+                            'Create Account',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.3,
+                            ),
                           ),
-                        )
-                      : const Text('Create Account'),
+                  ),
                 ),
               ],
             ),

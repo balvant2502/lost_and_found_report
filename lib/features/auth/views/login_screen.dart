@@ -48,6 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final authVM = context.watch<AuthViewModel>();
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -58,33 +59,36 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // App Branding Card (matching modern reference)
                   Container(
-                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 22),
+                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: const Color(0xFFBFDBFE)),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x06000000),
+                          blurRadius: 16,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Column(
                       children: [
                         Container(
-                          width: 68,
-                          height: 68,
+                          width: 64,
+                          height: 64,
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
+                            color: AppTheme.darkColor,
                             borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primaryColor.withValues(alpha: 0.22),
-                                blurRadius: 12,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
                           ),
-                          child: const Icon(
-                            Icons.search_rounded,
-                            size: 38,
-                            color: Colors.white,
+                          child: const Center(
+                            child: Icon(
+                              Icons.search_rounded,
+                              size: 34,
+                              color: AppTheme.primaryColor,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -92,24 +96,26 @@ class _LoginScreenState extends State<LoginScreen> {
                           'CampusFound',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 30,
+                            fontSize: 28,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF0F172A),
+                            color: Color(0xFF18181B),
+                            letterSpacing: -0.4,
                           ),
                         ),
                         const SizedBox(height: 6),
                         const Text(
-                          'Your university community lost & found network',
+                          'Your university lost & found network',
                           textAlign: TextAlign.center,
                           style: TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF475569),
+                            fontSize: 13,
+                            color: Color(0xFF71717A),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 36),
+                  const SizedBox(height: 32),
 
                   // Email Field
                   TextFormField(
@@ -119,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     decoration: const InputDecoration(
                       labelText: 'University Email',
                       hintText: 'student@university.edu',
-                      prefixIcon: Icon(Icons.email_outlined),
+                      prefixIcon: Icon(Icons.email_outlined, color: Color(0xFF71717A)),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -141,12 +147,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     onFieldSubmitted: (_) => _submit(),
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outline),
+                      prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF71717A)),
                       suffixIcon: IconButton(
                         icon: Icon(
                           _obscurePassword
                               ? Icons.visibility_outlined
                               : Icons.visibility_off_outlined,
+                          color: const Color(0xFF71717A),
                         ),
                         onPressed: () {
                           setState(() {
@@ -164,37 +171,62 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Login Button
-                  ElevatedButton(
-                    onPressed: authVM.isLoading ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: authVM.isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
+                  // Log In Pill Button (matching reference "Get Started!")
+                  SizedBox(
+                    height: 54,
+                    child: FilledButton(
+                      onPressed: authVM.isLoading ? null : _submit,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppTheme.darkColor,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: authVM.isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Log In',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 0.3,
+                              ),
                             ),
-                          )
-                        : const Text('Log In'),
+                    ),
                   ),
                   const SizedBox(height: 12),
 
                   // Demo Mode Button (Instant testing without credentials)
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      authVM.signInAsDemo();
-                    },
-                    icon: const Icon(Icons.flash_on_rounded, size: 18),
-                    label: const Text('Explore in Demo Mode'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.primaryColor,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  SizedBox(
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        authVM.signInAsDemo();
+                      },
+                      icon: const Icon(Icons.flash_on_rounded, size: 18, color: AppTheme.primaryColor),
+                      label: const Text(
+                        'Explore in Demo Mode',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF18181B),
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(26),
+                        ),
+                        side: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -205,7 +237,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       const Text(
                         "Don't have an account?",
-                        style: TextStyle(color: Color(0xFF64748B)),
+                        style: TextStyle(color: Color(0xFF71717A), fontSize: 13),
                       ),
                       TextButton(
                         onPressed: () {
@@ -218,8 +250,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: const Text(
                           'Register',
                           style: TextStyle(
-                            fontWeight: FontWeight.bold,
+                            fontWeight: FontWeight.w800,
                             color: AppTheme.primaryColor,
+                            fontSize: 13,
                           ),
                         ),
                       ),

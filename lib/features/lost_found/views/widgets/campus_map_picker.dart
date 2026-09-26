@@ -24,8 +24,9 @@ class CampusMapPicker extends StatefulWidget {
 }
 
 class _CampusMapPickerState extends State<CampusMapPicker> {
-  late final MapController _mapController;
-  late final CampusRegion? _region;
+  late MapController _mapController;
+  CampusRegion? _region;
+  bool _isLoadingRegion = true;
 
   LatLng? _selectedPosition;
   String _resolvedName = '';
@@ -37,26 +38,78 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
   void initState() {
     super.initState();
     _mapController = MapController();
-    _region = CampusBounds.getRegion(widget.university);
+    _initRegion();
+  }
 
-    final region = _region;
-    final initial = region != null && widget.initialPosition != null
-      ? region.clamp(widget.initialPosition!)
-      : region?.center;
+  @override
+  void didUpdateWidget(CampusMapPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.university != widget.university) {
+      _initRegion();
+    }
+  }
 
-    if (initial != null) _updatePinPosition(initial);
+  Future<void> _initRegion() async {
+    final uni = widget.university.trim();
+    if (uni.isEmpty) {
+      if (mounted) {
+        setState(() {
+          _region = null;
+          _isLoadingRegion = false;
+        });
+      }
+      return;
+    }
+
+    // Check synchronous cache first
+    final cached = CampusBounds.getRegion(uni);
+    if (cached != null) {
+      if (mounted) {
+        setState(() {
+          _mapController = MapController();
+          _region = cached;
+          _isLoadingRegion = false;
+        });
+        _setupInitialPin(cached);
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isLoadingRegion = true;
+      });
+    }
+
+    final resolved = await CampusBounds.resolveRegion(uni);
+    if (mounted) {
+      setState(() {
+        _mapController = MapController();
+        _region = resolved;
+        _isLoadingRegion = false;
+      });
+      _setupInitialPin(resolved);
+    }
+  }
+
+  void _setupInitialPin(CampusRegion region) {
+    final initial = widget.initialPosition != null
+        ? region.clamp(widget.initialPosition!)
+        : region.center;
+    _updatePinPosition(initial);
   }
 
   void _updatePinPosition(LatLng position) async {
-    if (_region == null) return;
+    final region = _region;
+    if (region == null) return;
     final request = ++_selectionRequest;
-    final clamped = _region.clamp(position);
+    final clamped = region.clamp(position);
     setState(() {
       _selectedPosition = clamped;
       _isResolving = true;
     });
 
-    final name = await GeolocationService.resolvePlaceName(clamped, _region);
+    final name = await GeolocationService.resolvePlaceName(clamped, region);
 
     if (mounted && request == _selectionRequest) {
       setState(() {
@@ -68,10 +121,11 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
   }
 
   void _locateUser() async {
-    if (_region == null) return;
+    final region = _region;
+    if (region == null) return;
     setState(() => _isLocating = true);
 
-    final result = await GeolocationService.getCurrentCampusLocation(_region);
+    final result = await GeolocationService.getCurrentCampusLocation(region);
 
     if (!mounted) return;
     setState(() => _isLocating = false);
@@ -89,7 +143,9 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
     }
 
     if (result.isInsideCampus && result.position != null) {
-      _mapController.move(result.position!, _region.defaultZoom);
+      try {
+        _mapController.move(result.position!, region.defaultZoom);
+      } catch (_) {}
       _updatePinPosition(result.position!);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -117,7 +173,59 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
   Widget build(BuildContext context) {
     final pinColor = widget.isLost ? AppTheme.lostColor : AppTheme.foundColor;
 
-    if (_region == null) {
+    if (_isLoadingRegion) {
+      return Container(
+        height: 250,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFCBD5E1)),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(
+                width: 30,
+                height: 30,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Finding campus map for',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text(
+                  widget.university.isNotEmpty
+                      ? widget.university
+                      : 'your university',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final region = _region;
+    if (region == null) {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -127,7 +235,7 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
         ),
         child: Text(
           'A campus map is not available for ${widget.university} yet. '
-          'Please choose a supported university or ask an administrator to add its campus boundaries.',
+          'Please choose a supported university or check the name.',
           style: const TextStyle(color: Color(0xFF9A3412)),
         ),
       );
@@ -154,7 +262,7 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Locked to ${widget.university} region',
+                  'Locked to ${region.university} region',
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -164,6 +272,23 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
+              if (region.isDynamicallyResolved)
+                Container(
+                  margin: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'Campus Located',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                ),
               Text(
                 'Tap to pin',
                 style: TextStyle(
@@ -185,14 +310,15 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
           child: Stack(
             children: [
               FlutterMap(
+                key: ValueKey('campus_map_${region.university}'),
                 mapController: _mapController,
                 options: MapOptions(
-                  initialCenter: _selectedPosition ?? _region.center,
-                  initialZoom: _region.defaultZoom,
-                  minZoom: _region.minZoom,
-                  maxZoom: _region.maxZoom,
-                  cameraConstraint: CameraConstraint.contain(
-                    bounds: _region.bounds,
+                  initialCenter: _selectedPosition ?? region.center,
+                  initialZoom: region.defaultZoom,
+                  minZoom: region.minZoom,
+                  maxZoom: region.maxZoom,
+                  cameraConstraint: CameraConstraint.containCenter(
+                    bounds: region.bounds,
                   ),
                   onTap: (tapPosition, point) {
                     _updatePinPosition(point);
@@ -210,10 +336,10 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
                     polygons: [
                       Polygon(
                         points: [
-                          LatLng(_region.bounds.south, _region.bounds.west),
-                          LatLng(_region.bounds.north, _region.bounds.west),
-                          LatLng(_region.bounds.north, _region.bounds.east),
-                          LatLng(_region.bounds.south, _region.bounds.east),
+                          LatLng(region.bounds.south, region.bounds.west),
+                          LatLng(region.bounds.north, region.bounds.west),
+                          LatLng(region.bounds.north, region.bounds.east),
+                          LatLng(region.bounds.south, region.bounds.east),
                         ],
                         borderColor: AppTheme.primaryColor.withValues(alpha: 0.6),
                         borderStrokeWidth: 2,
@@ -223,53 +349,54 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
                   ),
 
                   // Landmark markers
-                  MarkerLayer(
-                    markers: _region.landmarks.map((landmark) {
-                      return Marker(
-                        point: landmark.position,
-                        width: 70,
-                        height: 40,
-                        child: GestureDetector(
-                          onTap: () => _updatePinPosition(landmark.position),
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(4),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Colors.black26,
-                                      blurRadius: 2,
-                                    ),
-                                  ],
-                                ),
-                                child: Text(
-                                  landmark.name,
-                                  style: const TextStyle(
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF334155),
+                  if (region.landmarks.isNotEmpty)
+                    MarkerLayer(
+                      markers: region.landmarks.map((landmark) {
+                        return Marker(
+                          point: landmark.position,
+                          width: 70,
+                          height: 40,
+                          child: GestureDetector(
+                            onTap: () => _updatePinPosition(landmark.position),
+                            child: Column(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 2,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(4),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Colors.black26,
+                                        blurRadius: 2,
+                                      ),
+                                    ],
+                                  ),
+                                  child: Text(
+                                    landmark.name,
+                                    style: const TextStyle(
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF334155),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                              ),
-                              const Icon(
-                                Icons.apartment_rounded,
-                                size: 14,
-                                color: Color(0xFF64748B),
-                              ),
-                            ],
+                                const Icon(
+                                  Icons.apartment_rounded,
+                                  size: 14,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                        );
+                      }).toList(),
+                    ),
 
                   // Active Pin Marker
                   if (_selectedPosition != null)
@@ -326,10 +453,12 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
                     FloatingActionButton.small(
                       heroTag: 'map_recenter',
                       onPressed: () {
-                        _mapController.move(
-                          _selectedPosition ?? _region.center,
-                          _region.defaultZoom,
-                        );
+                        try {
+                          _mapController.move(
+                            _selectedPosition ?? region.center,
+                            region.defaultZoom,
+                          );
+                        } catch (_) {}
                       },
                       backgroundColor: Colors.white,
                       foregroundColor: const Color(0xFF475569),

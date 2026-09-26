@@ -1,4 +1,7 @@
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 class CampusLandmark {
@@ -16,6 +19,7 @@ class CampusRegion {
   final double maxZoom;
   final double defaultZoom;
   final List<CampusLandmark> landmarks;
+  final bool isDynamicallyResolved;
 
   const CampusRegion({
     required this.university,
@@ -25,6 +29,7 @@ class CampusRegion {
     this.maxZoom = 18.5,
     this.defaultZoom = 16.0,
     this.landmarks = const [],
+    this.isDynamicallyResolved = false,
   });
 
   bool contains(LatLng point) {
@@ -290,13 +295,179 @@ class CampusBounds {
     ),
   };
 
+  // Cache for dynamically resolved universities
+  static final Map<String, CampusRegion> _dynamicRegions = {};
+
+  /// Synchronous lookup (checks standard and already-cached dynamic regions)
   static CampusRegion? getRegion(String university) {
+    final cleanName = university.toLowerCase().trim();
+    if (cleanName.isEmpty) return null;
+
     for (final entry in _regions.entries) {
-      if (entry.key.toLowerCase().trim() == university.toLowerCase().trim()) {
+      if (entry.key.toLowerCase().trim() == cleanName) {
+        return entry.value;
+      }
+    }
+
+    for (final entry in _dynamicRegions.entries) {
+      if (entry.key.toLowerCase().trim() == cleanName) {
         return entry.value;
       }
     }
 
     return null;
+  }
+
+  /// Manually register a custom region in memory
+  static void registerCustomRegion(CampusRegion region) {
+    _dynamicRegions[region.university.toLowerCase().trim()] = region;
+  }
+
+  /// Asynchronously resolves any university name into a CampusRegion.
+  /// 1. Checks standard built-in universities.
+  /// 2. Checks cached dynamic regions.
+  /// 3. Queries OpenStreetMap / Nominatim geocoding API for real coordinates & bounding box.
+  /// 4. Falls back to a safe localized region around the center or user GPS hint.
+  static Future<CampusRegion> resolveRegion(
+    String university, {
+    LatLng? userGpsHint,
+  }) async {
+    final clean = university.trim();
+    if (clean.isEmpty) {
+      return _defaultFallbackRegion('General Campus', userGpsHint);
+    }
+
+    // 1. Check if already known or cached
+    final existing = getRegion(clean);
+    if (existing != null) {
+      return existing;
+    }
+
+    // 2. Query Nominatim OpenStreetMap Search API
+    try {
+      final queryUrl = Uri.parse(
+        'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(clean)}&format=json&limit=1',
+      );
+      final response = await http.get(
+        queryUrl,
+        headers: {'User-Agent': 'CampusFoundApp/1.0'},
+      ).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        if (data.isNotEmpty) {
+          final item = data[0];
+          final lat = double.tryParse(item['lat']?.toString() ?? '');
+          final lon = double.tryParse(item['lon']?.toString() ?? '');
+
+          if (lat != null && lon != null) {
+            final center = LatLng(lat, lon);
+            LatLngBounds bounds;
+
+            if (item['boundingbox'] != null &&
+                (item['boundingbox'] as List).length >= 4) {
+              final bbox = item['boundingbox'] as List;
+              final south = double.tryParse(bbox[0]?.toString() ?? '') ?? (lat - 0.012);
+              final north = double.tryParse(bbox[1]?.toString() ?? '') ?? (lat + 0.012);
+              final west = double.tryParse(bbox[2]?.toString() ?? '') ?? (lon - 0.012);
+              final east = double.tryParse(bbox[3]?.toString() ?? '') ?? (lon + 0.012);
+
+              // Ensure at least a ~1.2 km campus span around center if boundingbox is too narrow (e.g. single building point)
+              const minSpan = 0.010;
+              final latSpan = (north - south).abs();
+              final lonSpan = (east - west).abs();
+
+              final finalSouth = latSpan < minSpan ? (lat - 0.008) : south;
+              final finalNorth = latSpan < minSpan ? (lat + 0.008) : north;
+              final finalWest = lonSpan < minSpan ? (lon - 0.008) : west;
+              final finalEast = lonSpan < minSpan ? (lon + 0.008) : east;
+
+              bounds = LatLngBounds(
+                LatLng(finalSouth, finalWest),
+                LatLng(finalNorth, finalEast),
+              );
+            } else {
+              bounds = LatLngBounds(
+                LatLng(lat - 0.012, lon - 0.012),
+                LatLng(lat + 0.012, lon + 0.012),
+              );
+            }
+
+            final region = CampusRegion(
+              university: clean,
+              center: center,
+              bounds: bounds,
+              defaultZoom: 16.0,
+              minZoom: 14.0,
+              maxZoom: 19.0,
+              isDynamicallyResolved: true,
+            );
+
+            _dynamicRegions[clean.toLowerCase()] = region;
+            debugPrint('Resolved dynamic campus region for "$clean" at ($lat, $lon)');
+            return region;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Error geocoding university "$clean": $e');
+    }
+
+    // 3. Secondary query with "campus" appended if original name had no direct result
+    try {
+      final campusQueryUrl = Uri.parse(
+        'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent('$clean campus')}&format=json&limit=1',
+      );
+      final response = await http.get(
+        campusQueryUrl,
+        headers: {'User-Agent': 'CampusFoundApp/1.0'},
+      ).timeout(const Duration(seconds: 4));
+
+      if (response.statusCode == 200) {
+        final List data = json.decode(response.body);
+        if (data.isNotEmpty) {
+          final item = data[0];
+          final lat = double.tryParse(item['lat']?.toString() ?? '');
+          final lon = double.tryParse(item['lon']?.toString() ?? '');
+          if (lat != null && lon != null) {
+            final center = LatLng(lat, lon);
+            final region = CampusRegion(
+              university: clean,
+              center: center,
+              bounds: LatLngBounds(
+                LatLng(lat - 0.015, lon - 0.015),
+                LatLng(lat + 0.015, lon + 0.015),
+              ),
+              defaultZoom: 16.0,
+              isDynamicallyResolved: true,
+            );
+            _dynamicRegions[clean.toLowerCase()] = region;
+            return region;
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 4. Fallback region if geocoding is unavailable or offline
+    final fallback = _defaultFallbackRegion(clean, userGpsHint);
+    _dynamicRegions[clean.toLowerCase()] = fallback;
+    return fallback;
+  }
+
+  static CampusRegion _defaultFallbackRegion(
+    String university,
+    LatLng? userGpsHint,
+  ) {
+    final center = userGpsHint ?? const LatLng(37.4275, -122.1697);
+    return CampusRegion(
+      university: university,
+      center: center,
+      bounds: LatLngBounds(
+        LatLng(center.latitude - 0.02, center.longitude - 0.02),
+        LatLng(center.latitude + 0.02, center.longitude + 0.02),
+      ),
+      defaultZoom: 15.5,
+      isDynamicallyResolved: true,
+    );
   }
 }

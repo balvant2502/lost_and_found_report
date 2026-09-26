@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/campus_bounds.dart';
 import '../models/user_model.dart';
 
 class AuthViewModel extends ChangeNotifier {
@@ -41,6 +42,9 @@ class AuthViewModel extends ChangeNotifier {
 
       if (doc.exists && doc.data() != null) {
         _currentUser = UserModel.fromMap(doc.data()!, uid);
+        if (_currentUser!.university.isNotEmpty) {
+          CampusBounds.resolveRegion(_currentUser!.university);
+        }
       } else {
         // Create user record if document doesn't exist yet
         final newUser = UserModel(
@@ -54,6 +58,7 @@ class AuthViewModel extends ChangeNotifier {
             .doc(uid)
             .set(newUser.toMap());
         _currentUser = newUser;
+        CampusBounds.resolveRegion('Stanford University');
       }
     } catch (e) {
       debugPrint('Error loading user profile: $e');
@@ -107,6 +112,7 @@ class AuthViewModel extends ChangeNotifier {
       _currentUser = userModel;
       _setLoading(false);
       notifyListeners();
+      CampusBounds.resolveRegion(userModel.university);
       return true;
     } on FirebaseAuthException catch (e) {
       _setError(_getAuthErrorMessage(e));
@@ -163,13 +169,15 @@ class AuthViewModel extends ChangeNotifier {
     if (_currentUser == null) return false;
 
     try {
-      final updated = _currentUser!.copyWith(university: newUniversity);
+      final clean = newUniversity.trim();
+      final updated = _currentUser!.copyWith(university: clean);
       await _firestore
           .collection(AppConstants.collectionUsers)
           .doc(_currentUser!.uid)
-          .update({'university': newUniversity});
+          .update({'university': clean});
       _currentUser = updated;
       notifyListeners();
+      CampusBounds.resolveRegion(clean);
       return true;
     } catch (e) {
       _setError('Failed to update university: $e');
@@ -209,6 +217,7 @@ class AuthViewModel extends ChangeNotifier {
       createdAt: DateTime.now(),
     );
     _clearError();
+    CampusBounds.resolveRegion(university);
     notifyListeners();
   }
 
