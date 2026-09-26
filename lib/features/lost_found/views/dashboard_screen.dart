@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
@@ -439,8 +440,9 @@ class DashboardScreen extends StatelessWidget {
     String currentUserId,
   ) {
     final lostFoundVM = context.read<LostFoundViewModel>();
-    final hasLocalImage = FileHelper.doesLocalImageExist(item.imageUrl);
-    final hasRemoteImage = item.imageUrl?.startsWith('http') ?? false;
+    final hasLocalImage = !kIsWeb && FileHelper.doesLocalImageExist(item.imageUrl);
+    final hasRemoteImage = (item.imageUrl?.startsWith('http') ?? false) ||
+        (item.imageUrl?.startsWith('blob') ?? false);
 
     return Card(
       child: Padding(

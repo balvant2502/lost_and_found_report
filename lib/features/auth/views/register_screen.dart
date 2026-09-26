@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_theme.dart';
 import '../view_models/auth_view_model.dart';
+import 'package:flutter/widget_previews.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -59,6 +60,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
@@ -514,18 +515,25 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
               const SizedBox(height: 8),
 
               if (_selectedImagePath != null &&
-                  File(_selectedImagePath!).existsSync()) ...[
+                  (kIsWeb || FileHelper.doesLocalImageExist(_selectedImagePath))) ...[
                 Stack(
                   alignment: Alignment.topRight,
                   children: [
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        File(_selectedImagePath!),
-                        height: 180,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                      ),
+                      child: kIsWeb
+                          ? Image.network(
+                              _selectedImagePath!,
+                              height: 180,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            )
+                          : Image.file(
+                              File(_selectedImagePath!),
+                              height: 180,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
                     ),
                     IconButton.filled(
                       icon: const Icon(Icons.close_rounded, size: 18),

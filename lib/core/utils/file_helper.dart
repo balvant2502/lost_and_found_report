@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
@@ -48,6 +49,11 @@ class FileHelper {
         );
       }
 
+      if (kIsWeb) {
+        // On web, XFile path is a browser blob URL and path_provider is not supported
+        return ImagePickResult.success(pickedFile.path);
+      }
+
       // Save locally using path_provider
       final appDir = await getApplicationDocumentsDirectory();
       final imagesDir = Directory('${appDir.path}/item_images');
@@ -72,7 +78,12 @@ class FileHelper {
 
   /// Checks if a given local image path exists on the device.
   static bool doesLocalImageExist(String? path) {
+    if (kIsWeb) return false;
     if (path == null || path.trim().isEmpty) return false;
-    return File(path).existsSync();
+    try {
+      return File(path).existsSync();
+    } catch (_) {
+      return false;
+    }
   }
 }

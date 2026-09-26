@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
@@ -321,8 +322,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 
   Widget _buildItemCard(BuildContext context, ItemModel item) {
-    final hasLocalImage = FileHelper.doesLocalImageExist(item.imageUrl);
-    final hasRemoteImage = item.imageUrl?.startsWith('http') ?? false;
+    final hasLocalImage = !kIsWeb && FileHelper.doesLocalImageExist(item.imageUrl);
+    final hasRemoteImage = (item.imageUrl?.startsWith('http') ?? false) ||
+        (item.imageUrl?.startsWith('blob') ?? false);
 
     return InkWell(
       onTap: () {

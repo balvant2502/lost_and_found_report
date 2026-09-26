@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -123,8 +124,9 @@ class ItemDetailsScreen extends StatelessWidget {
       (i) => i.id == item.id,
       orElse: () => item,
     );
-    final hasLocalImage = FileHelper.doesLocalImageExist(liveItem.imageUrl);
-    final hasRemoteImage = liveItem.imageUrl?.startsWith('http') ?? false;
+    final hasLocalImage = !kIsWeb && FileHelper.doesLocalImageExist(liveItem.imageUrl);
+    final hasRemoteImage = (liveItem.imageUrl?.startsWith('http') ?? false) ||
+        (liveItem.imageUrl?.startsWith('blob') ?? false);
 
     return Scaffold(
       appBar: AppBar(

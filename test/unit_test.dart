@@ -26,19 +26,19 @@ void main() {
 
   group('CampusBounds & Geolocation Tests', () {
     test('Campus regions contain their respective centers and valid bounds', () {
-      final stanford = CampusBounds.getRegion('Stanford University');
+      final stanford = CampusBounds.getRegion('Stanford University')!;
       expect(stanford.contains(stanford.center), isTrue);
       expect(stanford.landmarks.isNotEmpty, isTrue);
 
-      final mit = CampusBounds.getRegion('MIT');
+      final mit = CampusBounds.getRegion('MIT')!;
       expect(mit.contains(mit.center), isTrue);
 
-      final berkeley = CampusBounds.getRegion('UC Berkeley');
+      final berkeley = CampusBounds.getRegion('UC Berkeley')!;
       expect(berkeley.contains(berkeley.center), isTrue);
     });
 
     test('Campus region clamps coordinates outside boundaries', () {
-      final stanford = CampusBounds.getRegion('Stanford University');
+      final stanford = CampusBounds.getRegion('Stanford University')!;
       // Point far outside Stanford (e.g. New York)
       final farPoint = const LatLng(40.7128, -74.0060);
       expect(stanford.contains(farPoint), isFalse);
@@ -48,7 +48,7 @@ void main() {
     });
 
     test('Closest landmark resolution inside campus', () {
-      final stanford = CampusBounds.getRegion('Stanford University');
+      final stanford = CampusBounds.getRegion('Stanford University')!;
       final mainQuad = const LatLng(37.4275, -122.1697);
       final landmark = stanford.getClosestLandmark(mainQuad);
       expect(landmark, isNotNull);
