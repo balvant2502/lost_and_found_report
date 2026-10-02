@@ -80,19 +80,22 @@ class _ChatScreenState extends State<ChatScreen> {
     final chatVM = context.watch<ChatViewModel>();
     final currentUserId = authVM.currentUser?.uid ?? '';
     final messages = chatVM.currentMessages;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
+        toolbarHeight: isLandscape ? 48 : null,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               widget.otherUserName,
-              style: const TextStyle(
-                fontSize: 17,
+              style: TextStyle(
+                fontSize: isLandscape ? 15 : 17,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF18181B),
+                color: const Color(0xFF18181B),
               ),
             ),
             Row(
@@ -106,10 +109,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: Text(
                     widget.itemTitle,
-                    style: const TextStyle(
-                      fontSize: 11,
+                    style: TextStyle(
+                      fontSize: isLandscape ? 10 : 11,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF71717A),
+                      color: const Color(0xFF71717A),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -135,9 +138,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     ? _buildEmptyChat()
                     : ListView.builder(
                         controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(
+                        padding: EdgeInsets.symmetric(
                           horizontal: 16,
-                          vertical: 16,
+                          vertical: isLandscape ? 8 : 16,
                         ),
                         itemCount: messages.length,
                         itemBuilder: (context, index) {
@@ -150,7 +153,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
           // Message Input Field
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: isLandscape ? 6 : 10,
+            ),
             decoration: const BoxDecoration(
               color: Colors.white,
               border: Border(
@@ -158,10 +164,12 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
             child: SafeArea(
+              top: false,
               child: Row(
                 children: [
                   Expanded(
                     child: Container(
+                      height: isLandscape ? 38 : null,
                       decoration: BoxDecoration(
                         color: const Color(0xFFF4F4F5),
                         borderRadius: BorderRadius.circular(24),
@@ -177,8 +185,8 @@ class _ChatScreenState extends State<ChatScreen> {
                           focusedBorder: InputBorder.none,
                           filled: false,
                           contentPadding: EdgeInsets.symmetric(
-                            horizontal: 18,
-                            vertical: 10,
+                            horizontal: 16,
+                            vertical: 8,
                           ),
                         ),
                         onSubmitted: (_) => _sendMessage(),
@@ -187,15 +195,20 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   const SizedBox(width: 8),
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: isLandscape ? 38 : 44,
+                    height: isLandscape ? 38 : 44,
                     decoration: const BoxDecoration(
                       color: AppTheme.darkColor,
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
+                      padding: EdgeInsets.zero,
                       onPressed: _sendMessage,
-                      icon: const Icon(Icons.send_rounded, size: 18, color: Colors.white),
+                      icon: Icon(
+                        Icons.send_rounded,
+                        size: isLandscape ? 16 : 18,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
@@ -272,39 +285,46 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildEmptyChat() {
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: EdgeInsets.symmetric(
+          horizontal: 24,
+          vertical: isLandscape ? 10 : 28,
+        ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              width: isLandscape ? 48 : 64,
+              height: isLandscape ? 48 : 64,
               decoration: const BoxDecoration(
                 color: Color(0xFFF4F4F5),
                 shape: BoxShape.circle,
               ),
-              child: const Center(
-                child: Text('💬', style: TextStyle(fontSize: 32)),
+              child: Center(
+                child: Text('💬', style: TextStyle(fontSize: isLandscape ? 22 : 28)),
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: isLandscape ? 8 : 12),
             Text(
               'Chat about ${widget.itemTitle}',
-              style: const TextStyle(
-                fontSize: 16,
+              style: TextStyle(
+                fontSize: isLandscape ? 14 : 16,
                 fontWeight: FontWeight.w800,
-                color: Color(0xFF18181B),
+                color: const Color(0xFF18181B),
               ),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
-            const Text(
+            Text(
               'Coordinate item verification and campus handover safely.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 13,
-                color: Color(0xFF71717A),
+                fontSize: isLandscape ? 11 : 13,
+                color: const Color(0xFF71717A),
               ),
             ),
           ],

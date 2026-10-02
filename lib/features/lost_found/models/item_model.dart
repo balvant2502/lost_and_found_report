@@ -15,6 +15,8 @@ class ItemModel {
   final String university;
   final bool isResolved;
   final String? imageUrl;
+  final String? securityQuestion;
+  final String? securityAnswer;
   final DateTime createdAt;
 
   ItemModel({
@@ -32,11 +34,28 @@ class ItemModel {
     required this.university,
     this.isResolved = false,
     this.imageUrl,
+    this.securityQuestion,
+    this.securityAnswer,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
   bool get isFound => !isLost;
   bool get hasCoordinates => latitude != null && longitude != null;
+  bool get hasSecurityQuestion =>
+      securityQuestion != null && securityQuestion!.trim().isNotEmpty;
+
+  /// Verifies a claimant's submitted answer against the founder's set answer (case-insensitive)
+  bool verifySecurityAnswer(String? claimantAnswer) {
+    if (securityAnswer == null || securityAnswer!.trim().isEmpty) {
+      return true;
+    }
+    if (claimantAnswer == null || claimantAnswer.trim().isEmpty) {
+      return false;
+    }
+    final cleanClaimant = claimantAnswer.trim().toLowerCase();
+    final cleanExpected = securityAnswer!.trim().toLowerCase();
+    return cleanClaimant == cleanExpected || cleanClaimant.contains(cleanExpected);
+  }
 
   factory ItemModel.fromMap(Map<String, dynamic> map, String id) {
     DateTime parseDate(dynamic val) {
@@ -61,6 +80,8 @@ class ItemModel {
       university: map['university'] as String? ?? '',
       isResolved: map['isResolved'] as bool? ?? false,
       imageUrl: map['imageUrl'] as String?,
+      securityQuestion: map['securityQuestion'] as String?,
+      securityAnswer: map['securityAnswer'] as String?,
       createdAt: parseDate(map['createdAt']),
     );
   }
@@ -80,6 +101,8 @@ class ItemModel {
       'university': university,
       'isResolved': isResolved,
       'imageUrl': imageUrl,
+      'securityQuestion': securityQuestion,
+      'securityAnswer': securityAnswer,
       'createdAt': createdAt.toIso8601String(),
     };
   }
@@ -99,6 +122,8 @@ class ItemModel {
     String? university,
     bool? isResolved,
     String? imageUrl,
+    String? securityQuestion,
+    String? securityAnswer,
     DateTime? createdAt,
   }) {
     return ItemModel(
@@ -116,6 +141,8 @@ class ItemModel {
       university: university ?? this.university,
       isResolved: isResolved ?? this.isResolved,
       imageUrl: imageUrl ?? this.imageUrl,
+      securityQuestion: securityQuestion ?? this.securityQuestion,
+      securityAnswer: securityAnswer ?? this.securityAnswer,
       createdAt: createdAt ?? this.createdAt,
     );
   }

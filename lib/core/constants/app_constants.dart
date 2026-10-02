@@ -27,6 +27,8 @@ class AppConstants {
 
   // Sample universities for quick selection
   static const List<String> defaultUniversities = [
+    'Darshan University, Rajkot',
+    'Dharmsinh Desai University (DDU)',
     'Stanford University',
     'UC Berkeley',
     'MIT',

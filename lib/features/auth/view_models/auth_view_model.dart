@@ -96,11 +96,12 @@ class AuthViewModel extends ChangeNotifier {
         return false;
       }
 
+      final cleanUniversity = CampusBounds.canonicalUniversityName(university);
       final userModel = UserModel(
         uid: user.uid,
         name: name.trim(),
         email: email.trim(),
-        university: university.trim(),
+        university: cleanUniversity,
         createdAt: DateTime.now(),
       );
 
@@ -169,7 +170,7 @@ class AuthViewModel extends ChangeNotifier {
     if (_currentUser == null) return false;
 
     try {
-      final clean = newUniversity.trim();
+      final clean = CampusBounds.canonicalUniversityName(newUniversity);
       final updated = _currentUser!.copyWith(university: clean);
       await _firestore
           .collection(AppConstants.collectionUsers)
@@ -201,23 +202,6 @@ class AuthViewModel extends ChangeNotifier {
 
   void clearError() {
     _errorMessage = null;
-    notifyListeners();
-  }
-
-  void signInAsDemo({
-    String name = 'Alex Rivera',
-    String email = 'alex.rivera@stanford.edu',
-    String university = 'Stanford University',
-  }) {
-    _currentUser = UserModel(
-      uid: 'demo_user_1',
-      name: name,
-      email: email,
-      university: university,
-      createdAt: DateTime.now(),
-    );
-    _clearError();
-    CampusBounds.resolveRegion(university);
     notifyListeners();
   }
 

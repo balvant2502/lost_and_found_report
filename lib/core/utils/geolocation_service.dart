@@ -65,8 +65,12 @@ class GeolocationService {
       );
     } catch (e) {
       debugPrint('Error getting GPS location: $e');
+      final errStr = e.toString().toLowerCase();
+      final msg = errStr.contains('permission')
+          ? 'Location permission is required to detect your campus position. Please allow location access in app settings.'
+          : 'Unable to get current location: $e';
       return GeolocationResult(
-        errorMessage: 'Unable to get current location: $e',
+        errorMessage: msg,
       );
     }
   }

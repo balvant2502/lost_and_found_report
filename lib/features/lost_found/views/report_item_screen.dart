@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,6 +11,7 @@ import '../../../core/services/cloudinary_service.dart';
 import '../../auth/view_models/auth_view_model.dart';
 import '../view_models/lost_found_view_model.dart';
 import 'widgets/campus_map_picker.dart';
+import 'widgets/item_image_view.dart';
 
 class ReportItemScreen extends StatefulWidget {
   const ReportItemScreen({super.key, this.onSubmitted});
@@ -27,6 +27,8 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
   final _roomDetailController = TextEditingController();
+  final _securityQuestionController = TextEditingController();
+  final _securityAnswerController = TextEditingController();
 
   bool _isLost = true; // true = lost, false = found
   String _selectedCategory = AppConstants.categories.first;
@@ -42,6 +44,8 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
     _titleController.dispose();
     _descController.dispose();
     _roomDetailController.dispose();
+    _securityQuestionController.dispose();
+    _securityAnswerController.dispose();
     super.dispose();
   }
 
@@ -192,13 +196,20 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
 
     String? uploadedImageUrl;
     if (_selectedImagePath != null &&
-        (kIsWeb || FileHelper.doesLocalImageExist(_selectedImagePath))) {
+        (kIsWeb ||
+            FileHelper.doesLocalImageExist(_selectedImagePath) ||
+            FileHelper.isBase64ImageUrl(_selectedImagePath))) {
       try {
         uploadedImageUrl =
             await CloudinaryService.uploadImage(_selectedImagePath!);
       } catch (e) {
-        debugPrint('Cloudinary upload skipped or failed: $e');
-        uploadedImageUrl = _selectedImagePath;
+        debugPrint(
+          'Cloudinary upload skipped or failed: $e. Falling back to portable Base64 data URL for cross-device sync.',
+        );
+        // Fall back to portable Base64 data URL so image syncs across all devices via Firestore
+        uploadedImageUrl =
+            await FileHelper.getPortableImageDataUrl(_selectedImagePath!);
+        uploadedImageUrl ??= _selectedImagePath;
       }
     }
 
@@ -215,6 +226,12 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
       reportedBy: user.uid,
       reporterName: user.name,
       university: user.university,
+      securityQuestion: !_isLost && _securityQuestionController.text.trim().isNotEmpty
+          ? _securityQuestionController.text.trim()
+          : null,
+      securityAnswer: !_isLost && _securityAnswerController.text.trim().isNotEmpty
+          ? _securityAnswerController.text.trim()
+          : null,
     );
 
     if (mounted) {
@@ -232,6 +249,8 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
         _titleController.clear();
         _descController.clear();
         _roomDetailController.clear();
+        _securityQuestionController.clear();
+        _securityAnswerController.clear();
         setState(() {
           _selectedImagePath = null;
           _pinnedLocation = null;
@@ -395,79 +414,86 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
               ),
               const SizedBox(height: 12),
 
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: AppConstants.categories.map((cat) {
-                  final isSelected = _selectedCategory == cat;
-                  final width = (MediaQuery.of(context).size.width - 56) / 2;
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedCategory = cat),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 180),
-                      width: width > 130 ? width : 150,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? const Color(0xFFFFF5EB)
-                            : Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                          color: isSelected
-                              ? AppTheme.primaryColor
-                              : const Color(0xFFE5E7EB),
-                          width: isSelected ? 1.5 : 1.0,
-                        ),
-                        boxShadow: isSelected
-                            ? [
-                                BoxShadow(
-                                  color: AppTheme.primaryColor.withValues(alpha: 0.12),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ]
-                            : null,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final availableWidth = constraints.maxWidth;
+                  final cols = availableWidth > 600 ? 3 : 2;
+                  final itemWidth = (availableWidth - ((cols - 1) * 10)) / cols;
+
+                  return Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: AppConstants.categories.map((cat) {
+                      final isSelected = _selectedCategory == cat;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedCategory = cat),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          width: itemWidth,
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFFFFF5EB)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
                               color: isSelected
-                                  ? Colors.white
-                                  : const Color(0xFFF4F4F5),
-                              borderRadius: BorderRadius.circular(12),
+                                  ? AppTheme.primaryColor
+                                  : const Color(0xFFE5E7EB),
+                              width: isSelected ? 1.5 : 1.0,
                             ),
-                            child: Center(
-                              child: Text(
-                                _getCategoryEmoji(cat),
-                                style: const TextStyle(fontSize: 18),
-                              ),
-                            ),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: AppTheme.primaryColor.withValues(alpha: 0.12),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ]
+                                : null,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              cat,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: isSelected
-                                    ? FontWeight.w800
-                                    : FontWeight.w600,
-                                color: isSelected
-                                    ? AppTheme.primaryColor
-                                    : const Color(0xFF27272A),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : const Color(0xFFF4F4F5),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    _getCategoryEmoji(cat),
+                                    style: const TextStyle(fontSize: 18),
+                                  ),
+                                ),
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  cat,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
+                                    color: isSelected
+                                        ? AppTheme.primaryColor
+                                        : const Color(0xFF27272A),
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    }).toList(),
                   );
-                }).toList(),
+                },
               ),
               const SizedBox(height: 22),
 
@@ -604,6 +630,101 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
               ),
               const SizedBox(height: 18),
 
+              // Security Question (Found items only)
+              if (!_isLost) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDF7EE),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFC7E5CA)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: AppTheme.secondaryColor.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.lock_person_rounded,
+                              size: 18,
+                              color: AppTheme.secondaryColor,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Expanded(
+                            child: Text(
+                              'Claim Verification (Recommended)',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: Color(0xFF1B4332),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'Set a secret question only the true owner would know to prevent fraudulent claims before they can chat with you.',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF2D6A4F), height: 1.3),
+                      ),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        controller: _securityQuestionController,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: InputDecoration(
+                          labelText: 'Security Question',
+                          hintText: 'e.g. What sticker/case is on it? or What is the wallpaper?',
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Color(0xFFB7E4C7)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Color(0xFFD8F3DC)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: AppTheme.secondaryColor, width: 1.5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextFormField(
+                        controller: _securityAnswerController,
+                        decoration: InputDecoration(
+                          labelText: 'Expected Answer (Optional auto-verification)',
+                          hintText: 'e.g. Red apple sticker or Dog wallpaper',
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Color(0xFFB7E4C7)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: Color(0xFFD8F3DC)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: const BorderSide(color: AppTheme.secondaryColor, width: 1.5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+              ],
+
               // Image Selection Section
               const Text(
                 'Photo (Optional, max 10 MB)',
@@ -616,25 +737,19 @@ class _ReportItemScreenState extends State<ReportItemScreen> {
               const SizedBox(height: 8),
 
               if (_selectedImagePath != null &&
-                  (kIsWeb || FileHelper.doesLocalImageExist(_selectedImagePath))) ...[
+                  (kIsWeb ||
+                      FileHelper.doesLocalImageExist(_selectedImagePath) ||
+                      FileHelper.isBase64ImageUrl(_selectedImagePath))) ...[
                 Stack(
                   alignment: Alignment.topRight,
                   children: [
-                    ClipRRect(
+                    ItemImageView(
+                      imageUrl: _selectedImagePath,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
                       borderRadius: BorderRadius.circular(18),
-                      child: kIsWeb
-                          ? Image.network(
-                              _selectedImagePath!,
-                              height: 180,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                            )
-                          : Image.file(
-                              File(_selectedImagePath!),
-                              height: 180,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                            ),
+                      placeholderBuilder: (_) => const SizedBox.shrink(),
                     ),
                     Padding(
                       padding: const EdgeInsets.all(8),

@@ -183,27 +183,29 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   Widget _buildEmptyState() {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 72,
-              height: 72,
+              width: 60,
+              height: 60,
               decoration: const BoxDecoration(
                 color: Color(0xFFF4F4F5),
                 shape: BoxShape.circle,
               ),
               child: const Center(
-                child: Text('💬', style: TextStyle(fontSize: 32)),
+                child: Text('💬', style: TextStyle(fontSize: 28)),
               ),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 14),
             const Text(
               'No active conversations',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 17,
                 fontWeight: FontWeight.w800,
                 color: Color(0xFF18181B),
               ),
@@ -213,7 +215,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
               'When you inquire about a lost or found item, your conversations will appear here.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 color: Color(0xFF71717A),
               ),
             ),

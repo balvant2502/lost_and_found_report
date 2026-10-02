@@ -44,7 +44,7 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
   @override
   void didUpdateWidget(CampusMapPicker oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.university != widget.university) {
+    if (!CampusBounds.isSameUniversity(oldWidget.university, widget.university)) {
       _initRegion();
     }
   }
@@ -248,47 +248,45 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: AppTheme.primaryColor.withValues(alpha: 0.08),
+            color: pinColor.withValues(alpha: 0.08),
             borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
             border: Border.all(color: const Color(0xFFCBD5E1)),
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.lock_outline_rounded,
+              Icon(
+                Icons.radar_rounded,
                 size: 16,
-                color: AppTheme.primaryColor,
+                color: pinColor,
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Locked to ${region.university} region',
-                  style: const TextStyle(
+                  '${region.university} (${region.radiusMeters.round()}m Circular Zone)',
+                  style: TextStyle(
                     fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.w700,
+                    color: pinColor,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              if (region.isDynamicallyResolved)
-                Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: const Text(
-                    'Campus Located',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryColor,
-                    ),
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: pinColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  'Circular Campus Area',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
+              ),
               Text(
                 'Tap to pin',
                 style: TextStyle(
@@ -310,7 +308,7 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
           child: Stack(
             children: [
               FlutterMap(
-                key: ValueKey('campus_map_${region.university}'),
+                key: ValueKey('campus_map_${region.university}_${MediaQuery.of(context).orientation}'),
                 mapController: _mapController,
                 options: MapOptions(
                   initialCenter: _selectedPosition ?? region.center,
@@ -331,19 +329,35 @@ class _CampusMapPickerState extends State<CampusMapPicker> {
                     userAgentPackageName: 'com.example.campus_found',
                   ),
 
-                  // Campus boundary outline
-                  PolygonLayer(
-                    polygons: [
-                      Polygon(
-                        points: [
-                          LatLng(region.bounds.south, region.bounds.west),
-                          LatLng(region.bounds.north, region.bounds.west),
-                          LatLng(region.bounds.north, region.bounds.east),
-                          LatLng(region.bounds.south, region.bounds.east),
-                        ],
-                        borderColor: AppTheme.primaryColor.withValues(alpha: 0.6),
-                        borderStrokeWidth: 2,
-                        color: AppTheme.primaryColor.withValues(alpha: 0.04),
+                  // Circular Campus Boundary Zone (requested by user: circular area instead of square)
+                  CircleLayer(
+                    circles: [
+                      // Main circular campus boundary
+                      CircleMarker(
+                        point: region.center,
+                        radius: region.radiusMeters,
+                        useRadiusInMeter: true,
+                        color: pinColor.withValues(alpha: 0.08),
+                        borderColor: pinColor.withValues(alpha: 0.85),
+                        borderStrokeWidth: 2.5,
+                      ),
+                      // Outer concentric subtle boundary ring
+                      CircleMarker(
+                        point: region.center,
+                        radius: region.radiusMeters * 1.04,
+                        useRadiusInMeter: true,
+                        color: Colors.transparent,
+                        borderColor: pinColor.withValues(alpha: 0.25),
+                        borderStrokeWidth: 1.0,
+                      ),
+                      // Center campus beacon dot
+                      CircleMarker(
+                        point: region.center,
+                        radius: 5,
+                        useRadiusInMeter: false,
+                        color: pinColor,
+                        borderColor: Colors.white,
+                        borderStrokeWidth: 2.0,
                       ),
                     ],
                   ),

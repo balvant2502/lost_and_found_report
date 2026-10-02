@@ -184,6 +184,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // University Dropdown
                 DropdownButtonFormField<String>(
                   initialValue: _selectedUniversity,
+                  isExpanded: true,
                   decoration: const InputDecoration(
                     labelText: 'University / College',
                     prefixIcon: Icon(Icons.school_outlined, color: Color(0xFF71717A)),
@@ -191,7 +192,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   items: AppConstants.defaultUniversities.map((uni) {
                     return DropdownMenuItem(
                       value: uni,
-                      child: Text(uni),
+                      child: Text(
+                        uni,
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     );
                   }).toList(),
                   onChanged: (value) {

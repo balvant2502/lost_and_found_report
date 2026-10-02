@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -7,12 +5,12 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_theme.dart';
 import '../../../core/utils/date_helper.dart';
-import '../../../core/utils/file_helper.dart';
 import '../../auth/view_models/auth_view_model.dart';
 import '../../chat/view_models/chat_view_model.dart';
 import '../../chat/views/chat_screen.dart';
 import '../models/item_model.dart';
 import '../view_models/lost_found_view_model.dart';
+import 'widgets/item_image_view.dart';
 
 class ItemDetailsScreen extends StatelessWidget {
   final ItemModel item;
@@ -84,7 +82,7 @@ class ItemDetailsScreen extends StatelessWidget {
     );
   }
 
-  void _startChat(BuildContext context) async {
+  void _startChat(BuildContext context, ItemModel liveItem) async {
     final authVM = context.read<AuthViewModel>();
     final chatVM = context.read<ChatViewModel>();
     final currentUser = authVM.currentUser;
@@ -92,12 +90,12 @@ class ItemDetailsScreen extends StatelessWidget {
     if (currentUser == null) return;
 
     final chatRoomId = await chatVM.getOrCreateChatRoom(
-      itemId: item.id,
-      itemTitle: item.title,
+      itemId: liveItem.id,
+      itemTitle: liveItem.title,
       currentUserId: currentUser.uid,
       currentUserName: currentUser.name,
-      otherUserId: item.reportedBy,
-      otherUserName: item.reporterName,
+      otherUserId: liveItem.reportedBy,
+      otherUserName: liveItem.reporterName,
     );
 
     if (context.mounted && chatRoomId != null) {
@@ -105,11 +103,197 @@ class ItemDetailsScreen extends StatelessWidget {
         MaterialPageRoute(
           builder: (_) => ChatScreen(
             chatRoomId: chatRoomId,
-            itemTitle: item.title,
-            otherUserName: item.reporterName,
+            itemTitle: liveItem.title,
+            otherUserName: liveItem.reporterName,
           ),
         ),
       );
+    }
+  }
+
+  void _promptSecurityVerification(BuildContext context, ItemModel liveItem) {
+    final answerController = TextEditingController();
+    String? localError;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEDF7EE),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.verified_user_rounded,
+                  color: AppTheme.secondaryColor,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Claim Verification',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF18181B),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text(
+                  'The founder set a security question to verify legitimate ownership before you can claim this item.',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF71717A), height: 1.3),
+                ),
+                const SizedBox(height: 14),
+
+                // Question Box
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4F4F5),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE4E4E7)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Security Question',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF71717A),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        liveItem.securityQuestion!,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF18181B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Claimant Answer Input
+                TextField(
+                  controller: answerController,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    labelText: 'Your Answer',
+                    hintText: 'Enter your answer to verify...',
+                    errorText: localError,
+                    prefixIcon: const Icon(Icons.key_rounded, size: 20),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.darkColor,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+              onPressed: () async {
+                final claimantAnswer = answerController.text.trim();
+                if (claimantAnswer.isEmpty) {
+                  setDialogState(() {
+                    localError = 'Please enter an answer to proceed.';
+                  });
+                  return;
+                }
+
+                // Verify claimant answer against founder's secret verification
+                if (!liveItem.verifySecurityAnswer(claimantAnswer)) {
+                  setDialogState(() {
+                    localError = 'Answer does not match founder\'s secret verification. Please try again.';
+                  });
+                  return;
+                }
+
+                Navigator.of(ctx).pop(); // Close dialog
+
+                // Proceed to start chat with automated claim verification message
+                if (context.mounted) {
+                  await _startChatWithClaimAnswer(context, liveItem, claimantAnswer);
+                }
+              },
+              child: const Text('Verify & Claim'),
+            ),
+          ],
+        ),
+      ),
+    ).then((_) => answerController.dispose());
+  }
+
+  Future<void> _startChatWithClaimAnswer(
+    BuildContext context,
+    ItemModel liveItem,
+    String claimantAnswer,
+  ) async {
+    final authVM = context.read<AuthViewModel>();
+    final chatVM = context.read<ChatViewModel>();
+    final currentUser = authVM.currentUser;
+
+    if (currentUser == null) return;
+
+    final chatRoomId = await chatVM.getOrCreateChatRoom(
+      itemId: liveItem.id,
+      itemTitle: liveItem.title,
+      currentUserId: currentUser.uid,
+      currentUserName: currentUser.name,
+      otherUserId: liveItem.reportedBy,
+      otherUserName: liveItem.reporterName,
+    );
+
+    if (context.mounted && chatRoomId != null) {
+      // Send claim verification message
+      final verificationMsg =
+          '🔐 [Claim Verification] I answered your security question ("${liveItem.securityQuestion}") with: "$claimantAnswer"';
+      await chatVM.sendMessage(
+        chatRoomId: chatRoomId,
+        text: verificationMsg,
+        senderId: currentUser.uid,
+        senderName: currentUser.name,
+      );
+
+      if (context.mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(
+              chatRoomId: chatRoomId,
+              itemTitle: liveItem.title,
+              otherUserName: liveItem.reporterName,
+            ),
+          ),
+        );
+      }
     }
   }
 
@@ -125,9 +309,6 @@ class ItemDetailsScreen extends StatelessWidget {
       (i) => i.id == item.id,
       orElse: () => item,
     );
-    final hasLocalImage = !kIsWeb && FileHelper.doesLocalImageExist(liveItem.imageUrl);
-    final hasRemoteImage = (liveItem.imageUrl?.startsWith('http') ?? false) ||
-        (liveItem.imageUrl?.startsWith('blob') ?? false);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -177,20 +358,14 @@ class ItemDetailsScreen extends StatelessWidget {
                       : const Color(0xFFEDF7EE),
                   border: Border.all(color: const Color(0xFFE5E7EB)),
                 ),
-                child: hasLocalImage
-                    ? Image.file(
-                        File(liveItem.imageUrl!),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => _buildLargePlaceholder(liveItem),
-                      )
-                    : hasRemoteImage
-                        ? Image.network(
-                            liveItem.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) =>
-                                _buildLargePlaceholder(liveItem),
-                          )
-                        : _buildLargePlaceholder(liveItem),
+                child: ItemImageView(
+                  imageUrl: liveItem.imageUrl,
+                  height: 220,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  placeholderBuilder: (_) =>
+                      _buildLargePlaceholder(liveItem),
+                ),
               ),
             ),
             const SizedBox(height: 18),
@@ -327,6 +502,7 @@ class ItemDetailsScreen extends StatelessWidget {
                         height: 150,
                         width: double.infinity,
                         child: FlutterMap(
+                          key: ValueKey('detail_map_${liveItem.id}_${MediaQuery.of(context).orientation}'),
                           options: MapOptions(
                             initialCenter: LatLng(
                               liveItem.latitude!,
@@ -417,6 +593,86 @@ class ItemDetailsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
+
+            // Security Question Info Card (if item has one)
+            if (liveItem.hasSecurityQuestion) ...[
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: isReporter
+                      ? const Color(0xFFF0FDF4)
+                      : const Color(0xFFEDF7EE),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: isReporter
+                        ? const Color(0xFFBBF7D0)
+                        : const Color(0xFFC7E5CA),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.secondaryColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.verified_user_rounded,
+                            size: 18,
+                            color: AppTheme.secondaryColor,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          isReporter
+                              ? 'Security Question Active'
+                              : 'Owner Verification Required',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1B4332),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Question: "${liveItem.securityQuestion}"',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF18181B),
+                      ),
+                    ),
+                    if (isReporter &&
+                        liveItem.securityAnswer != null &&
+                        liveItem.securityAnswer!.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Secret Answer Key: ${liveItem.securityAnswer}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF2D6A4F),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                    if (!isReporter) ...[
+                      const SizedBox(height: 4),
+                      const Text(
+                        'You must answer this security question correctly before claiming this item.',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF2D6A4F)),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
 
             // Description Section
             const Text(
@@ -560,10 +816,24 @@ class ItemDetailsScreen extends StatelessWidget {
               SizedBox(
                 height: 54,
                 child: FilledButton.icon(
-                  onPressed: () => _startChat(context),
-                  icon: const Icon(Icons.chat_bubble_outline_rounded),
+                  onPressed: () {
+                    if (!liveItem.isLost && liveItem.hasSecurityQuestion) {
+                      _promptSecurityVerification(context, liveItem);
+                    } else {
+                      _startChat(context, liveItem);
+                    }
+                  },
+                  icon: Icon(
+                    (!liveItem.isLost && liveItem.hasSecurityQuestion)
+                        ? Icons.lock_open_rounded
+                        : Icons.chat_bubble_outline_rounded,
+                  ),
                   label: Text(
-                    liveItem.isLost ? 'I Found This Item' : 'Claim / Inquire Item',
+                    liveItem.isLost
+                        ? 'I Found This Item'
+                        : (liveItem.hasSecurityQuestion
+                            ? 'Answer Question & Claim'
+                            : 'Claim / Inquire Item'),
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,

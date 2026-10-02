@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/campus_bounds.dart';
 import '../models/item_model.dart';
 
 class LostFoundViewModel extends ChangeNotifier {
@@ -24,9 +25,11 @@ class LostFoundViewModel extends ChangeNotifier {
   String get selectedCategory => _selectedCategory;
   String get typeFilter => _typeFilter;
 
-  /// Initializes the real-time Firestore stream filtered by user's university
+  /// Initializes the real-time Firestore stream filtered by user's university (case-insensitive)
   void setUniversity(String university) {
-    if (_currentUniversity == university && _itemsSubscription != null) return;
+    if (CampusBounds.isSameUniversity(_currentUniversity, university) && _itemsSubscription != null) {
+      return;
+    }
     _currentUniversity = university;
     _listenToUniversityItems(university);
   }
@@ -38,13 +41,14 @@ class LostFoundViewModel extends ChangeNotifier {
     _itemsSubscription?.cancel();
     _itemsSubscription = _firestore
         .collection(AppConstants.collectionItems)
-        .where('university', isEqualTo: university)
         .snapshots()
         .listen(
       (snapshot) {
-        _allItems = snapshot.docs.map((doc) {
-          return ItemModel.fromMap(doc.data(), doc.id);
-        }).toList();
+        // Filter in-memory with case-insensitive matching (e.g. 'harvard' matches 'Harvard' or 'Harvard University')
+        _allItems = snapshot.docs
+            .map((doc) => ItemModel.fromMap(doc.data(), doc.id))
+            .where((item) => CampusBounds.isSameUniversity(item.university, university))
+            .toList();
 
         // Sort by date descending
         _allItems.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -137,6 +141,8 @@ class LostFoundViewModel extends ChangeNotifier {
     double? latitude,
     double? longitude,
     String? imageUrl,
+    String? securityQuestion,
+    String? securityAnswer,
   }) async {
     _isLoading = true;
     notifyListeners();
@@ -155,9 +161,15 @@ class LostFoundViewModel extends ChangeNotifier {
         isLost: isLost,
         reportedBy: reportedBy,
         reporterName: reporterName,
-        university: university,
+        university: CampusBounds.canonicalUniversityName(university),
         isResolved: false,
         imageUrl: imageUrl,
+        securityQuestion: securityQuestion?.trim().isNotEmpty == true
+            ? securityQuestion!.trim()
+            : null,
+        securityAnswer: securityAnswer?.trim().isNotEmpty == true
+            ? securityAnswer!.trim()
+            : null,
         createdAt: DateTime.now(),
       );
 

@@ -1,15 +1,13 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_theme.dart';
 import '../../../core/utils/date_helper.dart';
-import '../../../core/utils/file_helper.dart';
 import '../../auth/view_models/auth_view_model.dart';
 import '../models/item_model.dart';
 import '../view_models/lost_found_view_model.dart';
 import 'item_details_screen.dart';
+import 'widgets/item_image_view.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -80,362 +78,391 @@ class _ExploreScreenState extends State<ExploreScreen> {
     final exploreItems = lostFoundVM.exploreItems;
     final university = authVM.currentUser?.university ?? 'Campus';
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
+    final crossAxisCount = screenWidth > 900
+        ? 4
+        : (isLandscape || screenWidth > 600 ? 3 : 2);
+    final childAspectRatio = isLandscape ? 0.82 : 0.74;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            // Top Modern Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
-              child: Row(
-                children: [
-                  // Circular Left Icon Button
-                  Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE5E7EB)),
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.grid_view_rounded,
-                        size: 20,
-                        color: Color(0xFF18181B),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-
-                  // Center University & Title Pill
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        const Text(
-                          'CampusFound',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF18181B),
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF4F4F5),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(
-                                Icons.school_rounded,
-                                size: 11,
-                                color: AppTheme.primaryColor,
+        child: RefreshIndicator(
+          color: AppTheme.primaryColor,
+          onRefresh: () async {
+            if (authVM.currentUser != null) {
+              lostFoundVM.setUniversity(
+                authVM.currentUser!.university,
+              );
+            }
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Top Modern Header
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 12, 18, 10),
+                      child: Row(
+                        children: [
+                          // Circular Left Icon Button
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: const Color(0xFFE5E7EB)),
+                            ),
+                            child: const Center(
+                              child: Icon(
+                                Icons.grid_view_rounded,
+                                size: 20,
+                                color: Color(0xFF18181B),
                               ),
-                              const SizedBox(width: 4),
-                              Flexible(
-                                child: Text(
-                                  university,
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF52525B),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Center University & Title Pill
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  'CampusFound',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF18181B),
+                                    letterSpacing: -0.3,
                                   ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF4F4F5),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.school_rounded,
+                                        size: 11,
+                                        color: AppTheme.primaryColor,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Flexible(
+                                        child: Text(
+                                          university,
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF52525B),
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Circular View Toggle Button
+                          GestureDetector(
+                            onTap: () => setState(() => _isGridView = !_isGridView),
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: const Color(0xFFE5E7EB)),
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  _isGridView
+                                      ? Icons.view_agenda_outlined
+                                      : Icons.grid_view_rounded,
+                                  size: 20,
+                                  color: const Color(0xFF18181B),
                                 ),
                               ),
-                            ],
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
 
-                  // Circular View Toggle Button
-                  GestureDetector(
-                    onTap: () => setState(() => _isGridView = !_isGridView),
-                    child: Container(
-                      width: 44,
-                      height: 44,
+                    // Hero Dark Notification / Announcement Card (matching reference)
+                    Container(
+                      margin: const EdgeInsets.fromLTRB(16, 4, 16, 10),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: const Color(0xFFE5E7EB)),
-                      ),
-                      child: Center(
-                        child: Icon(
-                          _isGridView
-                              ? Icons.view_agenda_outlined
-                              : Icons.grid_view_rounded,
-                          size: 20,
-                          color: const Color(0xFF18181B),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Hero Dark Notification / Announcement Card (matching reference)
-            Container(
-              margin: const EdgeInsets.fromLTRB(16, 4, 16, 10),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                color: AppTheme.darkColor,
-                borderRadius: BorderRadius.circular(22),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    blurRadius: 18,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 42,
-                    height: 42,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF27272A),
-                      borderRadius: BorderRadius.circular(13),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '📍',
-                        style: TextStyle(fontSize: 20),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Live Campus Network',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
+                        color: AppTheme.darkColor,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.12),
+                            blurRadius: 18,
+                            offset: const Offset(0, 6),
                           ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Items pinned to your verified campus map.',
-                          style: TextStyle(
-                            color: Color(0xFFA1A1AA),
-                            fontSize: 11,
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 42,
+                            height: 42,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF27272A),
+                              borderRadius: BorderRadius.circular(13),
+                            ),
+                            child: const Center(
+                              child: Text(
+                                '📍',
+                                style: TextStyle(fontSize: 20),
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(
-                    Icons.info_outline_rounded,
-                    color: Color(0xFF71717A),
-                    size: 18,
-                  ),
-                ],
-              ),
-            ),
-
-            // Search Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: (val) => lostFoundVM.setSearchQuery(val),
-                  textAlignVertical: TextAlignVertical.center,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    hintText: 'Search items or campus spots...',
-                    hintStyle: const TextStyle(
-                      color: Color(0xFFA1A1AA),
-                      fontSize: 13,
-                    ),
-                    prefixIcon: const Icon(
-                      Icons.search_rounded,
-                      color: Color(0xFF71717A),
-                      size: 20,
-                    ),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 18),
-                            onPressed: () {
-                              _searchController.clear();
-                              lostFoundVM.setSearchQuery('');
-                            },
-                          )
-                        : null,
-                    border: InputBorder.none,
-                    enabledBorder: InputBorder.none,
-                    focusedBorder: InputBorder.none,
-                    fillColor: Colors.transparent,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Lost / Found Type Switch Pills (matching reference date pills)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  _buildTypeSegment(
-                    title: 'All Items',
-                    selected: lostFoundVM.typeFilter == 'All',
-                    onTap: () => lostFoundVM.setTypeFilter('All'),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildTypeSegment(
-                    title: 'Lost Items',
-                    selected: lostFoundVM.typeFilter == 'Lost',
-                    activeColor: AppTheme.primaryColor,
-                    onTap: () => lostFoundVM.setTypeFilter('Lost'),
-                  ),
-                  const SizedBox(width: 8),
-                  _buildTypeSegment(
-                    title: 'Found Items',
-                    selected: lostFoundVM.typeFilter == 'Found',
-                    activeColor: AppTheme.secondaryColor,
-                    onTap: () => lostFoundVM.setTypeFilter('Found'),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-
-            // Category Horizontal Pills
-            SizedBox(
-              height: 38,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _buildCategoryPill('All', '✨', lostFoundVM),
-                  ...AppConstants.categories.map(
-                    (cat) => _buildCategoryPill(
-                      cat,
-                      _getCategoryEmoji(cat),
-                      lostFoundVM,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Feed Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    lostFoundVM.typeFilter == 'All'
-                        ? 'Recent Reports'
-                        : '${lostFoundVM.typeFilter} Reports',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: Color(0xFF18181B),
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF4F4F5),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${exploreItems.length} items',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF71717A),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Items Feed
-            Expanded(
-              child: lostFoundVM.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        color: AppTheme.primaryColor,
-                        strokeWidth: 2.5,
-                      ),
-                    )
-                  : exploreItems.isEmpty
-                      ? _buildEmptyState(lostFoundVM)
-                      : RefreshIndicator(
-                          color: AppTheme.primaryColor,
-                          onRefresh: () async {
-                            if (authVM.currentUser != null) {
-                              lostFoundVM.setUniversity(
-                                authVM.currentUser!.university,
-                              );
-                            }
-                          },
-                          child: _isGridView
-                              ? GridView.builder(
-                                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 90),
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 2,
-                                    childAspectRatio: 0.74,
-                                    crossAxisSpacing: 12,
-                                    mainAxisSpacing: 12,
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Live Campus Network',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
                                   ),
-                                  itemCount: exploreItems.length,
-                                  itemBuilder: (context, index) {
-                                    final item = exploreItems[index];
-                                    return _buildGridCard(context, item);
-                                  },
-                                )
-                              : ListView.separated(
-                                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 90),
-                                  itemCount: exploreItems.length,
-                                  separatorBuilder: (_, _) =>
-                                      const SizedBox(height: 10),
-                                  itemBuilder: (context, index) {
-                                    final item = exploreItems[index];
-                                    return _buildListCard(context, item);
-                                  },
                                 ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Items pinned to your verified campus map.',
+                                  style: TextStyle(
+                                    color: Color(0xFFA1A1AA),
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Icon(
+                            Icons.info_outline_rounded,
+                            color: Color(0xFF71717A),
+                            size: 18,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Search Bar
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Container(
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
                         ),
-            ),
-          ],
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (val) => lostFoundVM.setSearchQuery(val),
+                          textAlignVertical: TextAlignVertical.center,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                            hintText: 'Search items or campus spots...',
+                            hintStyle: const TextStyle(
+                              color: Color(0xFFA1A1AA),
+                              fontSize: 13,
+                            ),
+                            prefixIcon: const Icon(
+                              Icons.search_rounded,
+                              color: Color(0xFF71717A),
+                              size: 20,
+                            ),
+                            suffixIcon: _searchController.text.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(Icons.clear_rounded, size: 18),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      lostFoundVM.setSearchQuery('');
+                                    },
+                                  )
+                                : null,
+                            border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            fillColor: Colors.transparent,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Lost / Found Type Switch Pills (matching reference date pills)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Row(
+                        children: [
+                          _buildTypeSegment(
+                            title: 'All Items',
+                            selected: lostFoundVM.typeFilter == 'All',
+                            onTap: () => lostFoundVM.setTypeFilter('All'),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildTypeSegment(
+                            title: 'Lost Items',
+                            selected: lostFoundVM.typeFilter == 'Lost',
+                            activeColor: AppTheme.primaryColor,
+                            onTap: () => lostFoundVM.setTypeFilter('Lost'),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildTypeSegment(
+                            title: 'Found Items',
+                            selected: lostFoundVM.typeFilter == 'Found',
+                            activeColor: AppTheme.secondaryColor,
+                            onTap: () => lostFoundVM.setTypeFilter('Found'),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Category Horizontal Pills
+                    SizedBox(
+                      height: 38,
+                      child: ListView(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        children: [
+                          _buildCategoryPill('All', '✨', lostFoundVM),
+                          ...AppConstants.categories.map(
+                            (cat) => _buildCategoryPill(
+                              cat,
+                              _getCategoryEmoji(cat),
+                              lostFoundVM,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Feed Header
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            lostFoundVM.typeFilter == 'All'
+                                ? 'Recent Reports'
+                                : '${lostFoundVM.typeFilter} Reports',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF18181B),
+                              letterSpacing: -0.2,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF4F4F5),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${exploreItems.length} items',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF71717A),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                ),
+              ),
+
+              // Items Feed
+              if (lostFoundVM.isLoading)
+                const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.primaryColor,
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                )
+              else if (exploreItems.isEmpty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: _buildEmptyState(lostFoundVM),
+                )
+              else if (_isGridView)
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 90),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      childAspectRatio: childAspectRatio,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final item = exploreItems[index];
+                        return _buildGridCard(context, item);
+                      },
+                      childCount: exploreItems.length,
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 6, 16, 90),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final item = exploreItems[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _buildListCard(context, item),
+                        );
+                      },
+                      childCount: exploreItems.length,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -529,9 +556,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
   // Modern Grid Card (inspired directly by "Tuesday habit" cards in reference)
   Widget _buildGridCard(BuildContext context, ItemModel item) {
     final bgColor = _getCardPastelBg(item);
-    final hasLocalImage = !kIsWeb && FileHelper.doesLocalImageExist(item.imageUrl);
-    final hasRemoteImage = (item.imageUrl?.startsWith('http') ?? false) ||
-        (item.imageUrl?.startsWith('blob') ?? false);
 
     return GestureDetector(
       onTap: () {
@@ -605,29 +629,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
             // Image or Stylized Placeholder
             Expanded(
-              child: Center(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: double.infinity,
-                    child: hasLocalImage
-                        ? Image.file(
-                            File(item.imageUrl!),
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) =>
-                                _buildGridPlaceholder(item),
-                          )
-                        : hasRemoteImage
-                            ? Image.network(
-                                item.imageUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) =>
-                                    _buildGridPlaceholder(item),
-                              )
-                            : _buildGridPlaceholder(item),
-                  ),
-                ),
+              child: ItemImageView(
+                imageUrl: item.imageUrl,
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
+                borderRadius: BorderRadius.circular(16),
+                placeholderBuilder: (_) => _buildGridPlaceholder(item),
               ),
             ),
             const SizedBox(height: 10),
@@ -687,10 +695,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   // Modern List Card (matching "Challenge" list in reference)
   Widget _buildListCard(BuildContext context, ItemModel item) {
-    final hasLocalImage = !kIsWeb && FileHelper.doesLocalImageExist(item.imageUrl);
-    final hasRemoteImage = (item.imageUrl?.startsWith('http') ?? false) ||
-        (item.imageUrl?.startsWith('blob') ?? false);
-
     return GestureDetector(
       onTap: () {
         Navigator.of(context).push(
@@ -709,26 +713,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
         child: Row(
           children: [
             // Thumbnail
-            ClipRRect(
+            ItemImageView(
+              imageUrl: item.imageUrl,
+              width: 64,
+              height: 64,
+              fit: BoxFit.cover,
               borderRadius: BorderRadius.circular(14),
-              child: SizedBox(
-                width: 64,
-                height: 64,
-                child: hasLocalImage
-                    ? Image.file(
-                        File(item.imageUrl!),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => _buildListPlaceholder(item),
-                      )
-                    : hasRemoteImage
-                        ? Image.network(
-                            item.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) =>
-                                _buildListPlaceholder(item),
-                          )
-                        : _buildListPlaceholder(item),
-              ),
+              placeholderBuilder: (_) => _buildListPlaceholder(item),
             ),
             const SizedBox(width: 14),
 

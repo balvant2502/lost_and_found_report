@@ -1,16 +1,14 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/constants/app_theme.dart';
 import '../../../core/constants/campus_bounds.dart';
 import '../../../core/utils/date_helper.dart';
-import '../../../core/utils/file_helper.dart';
 import '../../auth/view_models/auth_view_model.dart';
 import '../models/item_model.dart';
 import '../view_models/lost_found_view_model.dart';
 import 'item_details_screen.dart';
+import 'widgets/item_image_view.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -82,9 +80,17 @@ class DashboardScreen extends StatelessWidget {
                 initialValue: isInitiallyCustom
                     ? 'Other University'
                     : selectedUni,
+                isExpanded: true,
                 decoration: const InputDecoration(labelText: 'Select Campus'),
                 items: AppConstants.defaultUniversities.map((uni) {
-                  return DropdownMenuItem(value: uni, child: Text(uni));
+                  return DropdownMenuItem(
+                    value: uni,
+                    child: Text(
+                      uni,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  );
                 }).toList(),
                 onChanged: (val) {
                   if (val != null) {
@@ -519,9 +525,6 @@ class DashboardScreen extends StatelessWidget {
     String currentUserId,
   ) {
     final lostFoundVM = context.read<LostFoundViewModel>();
-    final hasLocalImage = !kIsWeb && FileHelper.doesLocalImageExist(item.imageUrl);
-    final hasRemoteImage = (item.imageUrl?.startsWith('http') ?? false) ||
-        (item.imageUrl?.startsWith('blob') ?? false);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -534,25 +537,13 @@ class DashboardScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Thumbnail
-          ClipRRect(
+          ItemImageView(
+            imageUrl: item.imageUrl,
+            width: 58,
+            height: 58,
+            fit: BoxFit.cover,
             borderRadius: BorderRadius.circular(14),
-            child: SizedBox(
-              width: 58,
-              height: 58,
-              child: hasLocalImage
-                  ? Image.file(
-                      File(item.imageUrl!),
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => _placeholder(item),
-                    )
-                  : hasRemoteImage
-                      ? Image.network(
-                          item.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => _placeholder(item),
-                        )
-                  : _placeholder(item),
-            ),
+            placeholderBuilder: (_) => _placeholder(item),
           ),
           const SizedBox(width: 12),
 

@@ -202,34 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  // Demo Mode Button (Instant testing without credentials)
-                  SizedBox(
-                    height: 50,
-                    child: OutlinedButton.icon(
-                      onPressed: () {
-                        authVM.signInAsDemo();
-                      },
-                      icon: const Icon(Icons.flash_on_rounded, size: 18, color: AppTheme.primaryColor),
-                      label: const Text(
-                        'Explore in Demo Mode',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF18181B),
-                        ),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(26),
-                        ),
-                        side: const BorderSide(color: Color(0xFFE5E7EB)),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
                   // Switch to Register
                   Row(
